@@ -7,11 +7,13 @@ import Bankbuch from './pages/Bankbuch';
 import Rooms from './pages/Rooms';
 import Sales from './pages/Sales';
 import Orders from './pages/Orders';
+import Zahlungsabgleich from './pages/Zahlungsabgleich';
 
 const NAV_ITEMS = [
   { to: '/', label: 'Übersicht', end: true },
   { to: '/kassenbuch', label: 'Kassenbuch' },
   { to: '/bankbuch', label: 'Bankbuch' },
+  { to: '/zahlungsabgleich', label: 'Zahlungsabgleich' },
   { to: '/rooms', label: 'Zimmer' },
   { to: '/sales', label: 'Umsätze' },
   { to: '/orders', label: 'Bestellungen' },
@@ -50,6 +52,7 @@ function Shell() {
           <Route path="/" element={<Overview />} />
           <Route path="/kassenbuch" element={<Kassenbuch />} />
           <Route path="/bankbuch" element={<Bankbuch />} />
+          <Route path="/zahlungsabgleich" element={<Zahlungsabgleich />} />
           <Route path="/rooms" element={<Rooms />} />
           <Route path="/sales" element={<Sales />} />
           <Route path="/orders" element={<Orders />} />
