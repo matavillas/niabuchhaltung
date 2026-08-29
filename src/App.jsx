@@ -1,122 +1,88 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import './App.css'
+import { HashRouter, Routes, Route, NavLink, Navigate } from 'react-router-dom';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import Login from './pages/Login';
+import Overview from './pages/Overview';
+import Kassenbuch from './pages/Kassenbuch';
+import Bankbuch from './pages/Bankbuch';
+import Rooms from './pages/Rooms';
+import Sales from './pages/Sales';
+import Orders from './pages/Orders';
 
-function App() {
-  const [count, setCount] = useState(0)
+const NAV_ITEMS = [
+  { to: '/', label: 'Übersicht', end: true },
+  { to: '/kassenbuch', label: 'Kassenbuch' },
+  { to: '/bankbuch', label: 'Bankbuch' },
+  { to: '/rooms', label: 'Zimmer' },
+  { to: '/sales', label: 'Umsätze' },
+  { to: '/orders', label: 'Bestellungen' },
+];
 
+function Shell() {
+  const { profile, signOut } = useAuth();
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
+    <div style={{ display: 'flex', minHeight: '100vh' }}>
+      <aside style={styles.sidebar}>
+        <div style={styles.brand}>Mata Villas</div>
+        <nav style={{ display: 'flex', flexDirection: 'column', gap: 2, marginTop: 20 }}>
+          {NAV_ITEMS.map((item) => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              end={item.end}
+              style={({ isActive }) => ({
+                ...styles.navLink,
+                background: isActive ? 'rgba(255,255,255,0.15)' : 'transparent',
+                fontWeight: isActive ? 700 : 400,
+              })}
+            >
+              {item.label}
+            </NavLink>
+          ))}
+        </nav>
+        <div style={{ marginTop: 'auto', paddingTop: 20, borderTop: '1px solid rgba(255,255,255,0.15)' }}>
+          <div style={{ fontSize: 12.5, opacity: 0.85 }}>{profile?.full_name || profile?.email}</div>
+          <div style={{ fontSize: 11, opacity: 0.6, marginBottom: 10 }}>{profile?.role}</div>
+          <button onClick={signOut} style={styles.logoutBtn}>Abmelden</button>
         </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
-
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+      </aside>
+      <main style={styles.main}>
+        <Routes>
+          <Route path="/" element={<Overview />} />
+          <Route path="/kassenbuch" element={<Kassenbuch />} />
+          <Route path="/bankbuch" element={<Bankbuch />} />
+          <Route path="/rooms" element={<Rooms />} />
+          <Route path="/sales" element={<Sales />} />
+          <Route path="/orders" element={<Orders />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </main>
+    </div>
+  );
 }
 
-export default App
+function Gate() {
+  const { session, loading } = useAuth();
+  if (loading) return <div style={{ padding: 40 }}>Lade…</div>;
+  return session ? <Shell /> : <Login />;
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <HashRouter>
+        <Gate />
+      </HashRouter>
+    </AuthProvider>
+  );
+}
+
+const styles = {
+  sidebar: {
+    width: 220, background: 'var(--color-primary)', color: 'white',
+    padding: '24px 18px', display: 'flex', flexDirection: 'column', position: 'sticky', top: 0, height: '100vh',
+  },
+  brand: { fontSize: 17, fontWeight: 700, letterSpacing: 0.2 },
+  navLink: { color: 'white', textDecoration: 'none', padding: '9px 12px', borderRadius: 6, fontSize: 13.5 },
+  logoutBtn: { background: 'rgba(255,255,255,0.12)', color: 'white', border: 'none', borderRadius: 6, padding: '7px 10px', fontSize: 12.5, width: '100%' },
+  main: { flex: 1, padding: '28px 32px', overflow: 'auto' },
+};
