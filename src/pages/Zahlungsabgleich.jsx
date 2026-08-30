@@ -1,67 +1,56 @@
 import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
-import { evaluateBooking } from '../lib/reconciliation';
+import { formatDatum } from '../lib/format';
 
-const STATUS_ORDER = { warning: 0, pending: 1, ok: 2 };
-const STATUS_COLOR = { warning: 'var(--color-danger)', pending: 'var(--color-warning)', ok: 'var(--color-success)' };
+const STATUS_LABEL = { open: '⏳ Offen — noch abzugleichen', matched: '✅ Abgeglichen' };
+const STATUS_COLOR = { open: 'var(--color-warning)', matched: 'var(--color-success)' };
 
 export default function Zahlungsabgleich() {
-  const [agoda, setAgoda] = useState([]);
-  const [booking, setBooking] = useState([]);
-  const [hotelCharges, setHotelCharges] = useState([]);
-  const [bankRows, setBankRows] = useState([]);
+  const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [filter, setFilter] = useState('all');
+  const [filter, setFilter] = useState('open');
+  const [quelleFilter, setQuelleFilter] = useState('');
 
   async function load() {
     setLoading(true);
-    const [a, b, hc, bb] = await Promise.all([
-      supabase.from('agoda_buchungen').select('*'),
-      supabase.from('bookingcom_buchungen').select('*'),
-      supabase.from('hotel_charges').select('*'),
-      supabase.from('bankbuch').select('datum,buchungstext,debit,credit')
-        .or('buchungstext.ilike.%agoda%,buchungstext.ilike.%booking%'),
-    ]);
-    if (a.error || b.error || hc.error || bb.error) {
-      setError(a.error?.message || b.error?.message || hc.error?.message || bb.error?.message);
-    } else {
-      setAgoda(a.data);
-      setBooking(b.data);
-      setHotelCharges(hc.data);
-      setBankRows(bb.data);
-    }
+    const { data, error } = await supabase.from('kartenumsaetze').select('*').order('datum', { ascending: false });
+    if (error) setError(error.message);
+    else setRows(data);
     setLoading(false);
   }
 
   useEffect(() => { load(); }, []);
 
-  const rows = useMemo(() => {
-    const agodaRows = agoda.map((e) => ({ ...e, quelle: 'agoda', quelleLabel: 'Agoda' }));
-    const bookingRows = booking.map((e) => ({ ...e, quelle: 'booking', quelleLabel: 'Booking.com' }));
-    const all = [...agodaRows, ...bookingRows];
-    return all
-      .map((b) => ({ ...b, evalResult: evaluateBooking(b, b.quelle, hotelCharges, bankRows) }))
-      .sort((x, y) => STATUS_ORDER[x.evalResult.status] - STATUS_ORDER[y.evalResult.status]
-        || new Date(y.checkout) - new Date(x.checkout));
-  }, [agoda, booking, hotelCharges, bankRows]);
+  const quelleOf = (detail) => {
+    if (!detail) return '—';
+    if (detail.includes('(Agoda)')) return 'Agoda';
+    if (detail.includes('(Booking.com')) return 'Booking.com';
+    if (detail.toLowerCase().includes('direktbuchung')) return 'Direkt';
+    if (detail.includes('(RMS')) return 'RMS';
+    return '—';
+  };
 
-  const visible = filter === 'all' ? rows : rows.filter((r) => r.evalResult.status === filter);
-  const counts = rows.reduce((acc, r) => { acc[r.evalResult.status] = (acc[r.evalResult.status] || 0) + 1; return acc; }, {});
+  const enriched = useMemo(() => rows.map((r) => ({ ...r, quelle_erkannt: quelleOf(r.detail) })), [rows]);
+
+  const visible = enriched.filter((r) =>
+    (filter === 'all' || r.match_status === filter) &&
+    (!quelleFilter || r.quelle_erkannt === quelleFilter)
+  );
+  const counts = enriched.reduce((acc, r) => { acc[r.match_status] = (acc[r.match_status] || 0) + 1; return acc; }, {});
 
   if (loading) return <div>Lade Zahlungsabgleich…</div>;
 
   return (
     <div>
-      <h2 style={{ color: 'var(--color-primary)' }}>Zahlungsabgleich (Agoda / Booking.com)</h2>
+      <h2 style={{ color: 'var(--color-primary)' }}>Zahlungsabgleich</h2>
       {error && <div style={{ color: 'var(--color-danger)', marginBottom: 10 }}>{error}</div>}
 
-      <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
+      <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
         {[
-          { key: 'all', label: `Alle (${rows.length})` },
-          { key: 'warning', label: `⚠️ Zu prüfen (${counts.warning || 0})` },
-          { key: 'pending', label: `⏳ Ausstehend (${counts.pending || 0})` },
-          { key: 'ok', label: `✅ Erledigt (${counts.ok || 0})` },
+          { key: 'open', label: `⏳ Offen — noch abzugleichen (${counts.open || 0})` },
+          { key: 'matched', label: `✅ Abgeglichen (${counts.matched || 0})` },
+          { key: 'all', label: `Alle (${enriched.length})` },
         ].map((f) => (
           <button
             key={f.key}
@@ -75,38 +64,44 @@ export default function Zahlungsabgleich() {
             {f.label}
           </button>
         ))}
+        <select value={quelleFilter} onChange={(e) => setQuelleFilter(e.target.value)} style={{ marginLeft: 'auto' }}>
+          <option value="">Alle Quellen</option>
+          <option value="Booking.com">Booking.com</option>
+          <option value="Agoda">Agoda</option>
+          <option value="Direkt">Direkt</option>
+          <option value="RMS">RMS</option>
+        </select>
       </div>
 
-      <div style={{ background: 'var(--color-surface)', borderRadius: 8, boxShadow: 'var(--shadow)', overflow: 'auto', maxHeight: '70vh' }}>
-        <table>
+      <div style={{ background: 'var(--color-surface)', borderRadius: 8, boxShadow: 'var(--shadow)', overflow: 'auto', maxHeight: '72vh' }}>
+        <table style={{ fontSize: 12.5, whiteSpace: 'nowrap' }}>
           <thead>
-            <tr><th>Quelle</th><th>Gast</th><th>Check-in</th><th>Check-out</th><th>Betrag</th><th>Zahlweg</th><th>Status</th></tr>
+            <tr><th>Datum</th><th>Quelle</th><th>Detail</th><th>Betrag</th><th>Netto</th><th>Zahlungsart</th><th>Status</th><th>Info</th></tr>
           </thead>
           <tbody>
             {visible.map((r) => (
-              <tr key={`${r.quelle}-${r.id}`}>
-                <td>{r.quelleLabel}</td>
-                <td>{r.gast}</td>
-                <td>{r.checkin}</td>
-                <td>{r.checkout}</td>
+              <tr key={r.id}>
+                <td>{formatDatum(r.datum)}</td>
+                <td>{r.quelle_erkannt}</td>
+                <td style={{ overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 280 }}>{r.detail}</td>
                 <td>{Number(r.betrag || 0).toLocaleString('de-DE')}</td>
-                <td>{r.zahlweg}</td>
-                <td style={{ color: STATUS_COLOR[r.evalResult.status], fontWeight: 600 }}>
-                  {r.evalResult.label}
-                  <div style={{ fontWeight: 400, fontSize: 11.5, color: 'var(--color-muted)' }}>{r.evalResult.detail}</div>
+                <td>{Number(r.netto || 0).toLocaleString('de-DE')}</td>
+                <td>{r.zahlungsart || '—'}</td>
+                <td style={{ color: STATUS_COLOR[r.match_status], fontWeight: 600 }}>
+                  {STATUS_LABEL[r.match_status] || r.match_status}
                 </td>
+                <td style={{ fontSize: 11, color: 'var(--color-muted)', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 260 }}>{r.match_info || '—'}</td>
               </tr>
             ))}
             {visible.length === 0 && (
-              <tr><td colSpan={7} style={{ textAlign: 'center', color: 'var(--color-muted)' }}>Keine Buchungen in dieser Ansicht.</td></tr>
+              <tr><td colSpan={8} style={{ textAlign: 'center', color: 'var(--color-muted)' }}>Keine Buchungen in dieser Ansicht.</td></tr>
             )}
           </tbody>
         </table>
       </div>
       <p style={{ fontSize: 11.5, color: 'var(--color-muted)', marginTop: 10 }}>
-        Regeln: Vor-Ort-Zahlung 1 Tag Toleranz (Karte: Folgetag minus 1,8% Gebühr, Cash: taggleich) ·
-        Booking.com-Auszahlung: wöchentlich donnerstags, 10 Tage Toleranz ·
-        Agoda-Auszahlung: 30 Tage nach Check-out. Agoda-Kommission (≈18%) ist geschätzt, da nicht separat ausgewiesen.
+        Quelle: kartenumsaetze — Ergebnis des manuellen Abgleichs gegen Booking.com/Agoda-Buchungsdaten, RMS (hotel_charges) und Bank-/Kassenbuch.
+        "Offen" heißt: noch nicht gegen Bank-/Kasseneingang bestätigt (z.B. Agoda hat noch nicht ausgezahlt, oder Beleg fehlt noch).
       </p>
     </div>
   );

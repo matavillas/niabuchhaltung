@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
+import { formatDatum } from '../lib/format';
 
 const CATEGORIES = ['hotel', 'restaurant', 'minibar'];
 const CATEGORY_LABELS = { hotel: 'Hotel', restaurant: 'Restaurant', minibar: 'Minibar' };
@@ -8,6 +9,7 @@ const PAYMENT_METHODS = ['cash', 'card', 'qris', 'bank_transfer', 'ota'];
 export default function Sales() {
   const [sales, setSales] = useState([]);
   const [rooms, setRooms] = useState([]);
+  const [historie, setHistorie] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [filterCategory, setFilterCategory] = useState('');
@@ -16,13 +18,15 @@ export default function Sales() {
 
   async function load() {
     setLoading(true);
-    const [salesRes, roomsRes] = await Promise.all([
+    const [salesRes, roomsRes, histRes] = await Promise.all([
       supabase.from('sales').select('*').order('created_at', { ascending: false }),
       supabase.from('rooms').select('id,name'),
+      supabase.from('kartenumsaetze').select('*').order('datum', { ascending: false }),
     ]);
     if (salesRes.error) setError(salesRes.error.message);
     else setSales(salesRes.data);
     if (roomsRes.data) setRooms(roomsRes.data);
+    if (histRes.data) setHistorie(histRes.data);
     setLoading(false);
   }
 
@@ -80,12 +84,12 @@ export default function Sales() {
           {visible.length} Einträge · Summe {total.toLocaleString('de-DE')}k
         </span>
       </div>
-      <div style={{ background: 'var(--color-surface)', borderRadius: 8, boxShadow: 'var(--shadow)', overflow: 'auto', maxHeight: '70vh' }}>
-        <table>
+      <div style={{ background: 'var(--color-surface)', borderRadius: 8, boxShadow: 'var(--shadow)', overflow: 'auto', maxHeight: '55vh', marginBottom: 24 }}>
+        <table style={{ fontSize: 12.5 }}>
           <thead>
             <tr>
               <th>Datum</th><th>Kategorie</th><th>Zimmer</th><th>Gast</th>
-              <th>Betrag (k)</th><th>Zahlung</th><th>Rabatt %</th><th></th>
+              <th>Betrag (k)</th><th>Zahlung</th><th></th>
             </tr>
           </thead>
           <tbody>
@@ -111,7 +115,6 @@ export default function Sales() {
                       {PAYMENT_METHODS.map((p) => <option key={p} value={p}>{p}</option>)}
                     </select>
                   </td>
-                  <td><input type="number" value={draft.discount_percent || 0} onChange={(e) => setDraft({ ...draft, discount_percent: Number(e.target.value) })} style={{ width: 60 }} /></td>
                   <td style={{ whiteSpace: 'nowrap' }}>
                     <button onClick={saveEdit} style={btnPrimary}>Speichern</button>{' '}
                     <button onClick={() => { setEditingId(null); setDraft(null); }} style={btnGhost}>Abbrechen</button>
@@ -119,13 +122,12 @@ export default function Sales() {
                 </tr>
               ) : (
                 <tr key={s.id} onClick={() => startEdit(s)} style={{ cursor: 'pointer' }}>
-                  <td>{s.created_at ? new Date(s.created_at).toLocaleDateString('de-DE') : '—'}</td>
+                  <td>{s.created_at ? formatDatum(s.created_at.slice(0, 10)) : '—'}</td>
                   <td>{CATEGORY_LABELS[s.revenue_category] || s.revenue_category}</td>
                   <td>{s.room_id ? roomName(s.room_id) : '—'}</td>
                   <td>{s.guest_name || '—'}</td>
                   <td>{Number(s.total_k || 0).toLocaleString('de-DE')}</td>
                   <td>{s.payment_method || '—'}</td>
-                  <td>{s.discount_percent || 0}%</td>
                   <td onClick={(e) => e.stopPropagation()}>
                     <button onClick={() => deleteSale(s.id)} style={btnDanger}>✕</button>
                   </td>
@@ -133,7 +135,34 @@ export default function Sales() {
               )
             ))}
             {visible.length === 0 && (
-              <tr><td colSpan={8} style={{ textAlign: 'center', color: 'var(--color-muted)' }}>Keine Umsätze gefunden.</td></tr>
+              <tr><td colSpan={7} style={{ textAlign: 'center', color: 'var(--color-muted)' }}>Keine Umsätze gefunden.</td></tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      <h3 style={{ color: 'var(--color-primary)', fontSize: 15 }}>Bisherige Umsätze — Hotel &amp; Restaurant (kartenumsaetze)</h3>
+      <div style={{ background: 'var(--color-surface)', borderRadius: 8, boxShadow: 'var(--shadow)', overflow: 'auto', maxHeight: '60vh' }}>
+        <table style={{ fontSize: 12, whiteSpace: 'nowrap' }}>
+          <thead>
+            <tr>
+              <th>Datum</th><th>Quelle</th><th>Detail</th><th>Betrag</th><th>Netto</th><th>Zahlungsart</th><th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {historie.map((h) => (
+              <tr key={h.id}>
+                <td>{formatDatum(h.datum)}</td>
+                <td>{h.quelle}</td>
+                <td style={{ overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 320 }}>{h.detail}</td>
+                <td>{Number(h.betrag || 0).toLocaleString('de-DE')}</td>
+                <td>{Number(h.netto || 0).toLocaleString('de-DE')}</td>
+                <td>{h.zahlungsart || '—'}</td>
+                <td>{h.match_status}</td>
+              </tr>
+            ))}
+            {historie.length === 0 && (
+              <tr><td colSpan={7} style={{ textAlign: 'center', color: 'var(--color-muted)' }}>Keine historischen Umsätze gefunden.</td></tr>
             )}
           </tbody>
         </table>

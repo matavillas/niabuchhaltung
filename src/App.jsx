@@ -84,11 +84,11 @@ export default function App() {
 
 const styles = {
   sidebar: {
-    width: 220, background: 'var(--color-primary)', color: 'white',
-    padding: '24px 18px', display: 'flex', flexDirection: 'column', position: 'sticky', top: 0, height: '100vh',
+    width: 150, background: 'var(--color-primary)', color: 'white',
+    padding: '20px 12px', display: 'flex', flexDirection: 'column', position: 'sticky', top: 0, height: '100vh', flexShrink: 0,
   },
-  brand: { fontSize: 17, fontWeight: 700, letterSpacing: 0.2 },
-  navLink: { color: 'white', textDecoration: 'none', padding: '9px 12px', borderRadius: 6, fontSize: 13.5 },
-  logoutBtn: { background: 'rgba(255,255,255,0.12)', color: 'white', border: 'none', borderRadius: 6, padding: '7px 10px', fontSize: 12.5, width: '100%' },
-  main: { flex: 1, padding: '28px 32px', overflow: 'auto' },
+  brand: { fontSize: 15, fontWeight: 700, letterSpacing: 0.2 },
+  navLink: { color: 'white', textDecoration: 'none', padding: '8px 10px', borderRadius: 6, fontSize: 12.5 },
+  logoutBtn: { background: 'rgba(255,255,255,0.12)', color: 'white', border: 'none', borderRadius: 6, padding: '7px 10px', fontSize: 12, width: '100%' },
+  main: { flex: 1, padding: '20px 22px', overflow: 'auto', minWidth: 0 },
 };
