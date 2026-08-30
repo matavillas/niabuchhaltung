@@ -9,10 +9,12 @@ import Sales from './pages/Sales';
 import Orders from './pages/Orders';
 import Zahlungsabgleich from './pages/Zahlungsabgleich';
 import Kontenplan from './pages/Kontenplan';
+import PetitCashAdit from './pages/PetitCashAdit';
 
 const NAV_ITEMS = [
   { to: '/', label: 'Übersicht', end: true },
   { to: '/kassenbuch', label: 'Kassenbuch' },
+  { to: '/petit-cash-adit', label: 'Petit Cash Adit' },
   { to: '/bankbuch', label: 'Bankbuch' },
   { to: '/kontenplan', label: 'Kontenplan' },
   { to: '/zahlungsabgleich', label: 'Zahlungsabgleich' },
@@ -53,6 +55,7 @@ function Shell() {
         <Routes>
           <Route path="/" element={<Overview />} />
           <Route path="/kassenbuch" element={<Kassenbuch />} />
+          <Route path="/petit-cash-adit" element={<PetitCashAdit />} />
           <Route path="/bankbuch" element={<Bankbuch />} />
           <Route path="/kontenplan" element={<Kontenplan />} />
           <Route path="/zahlungsabgleich" element={<Zahlungsabgleich />} />
