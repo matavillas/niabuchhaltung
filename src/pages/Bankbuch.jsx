@@ -108,6 +108,12 @@ export default function Bankbuch() {
           <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: 8, alignItems: 'center', maxWidth: 700 }}>
             <label>Buchungstext</label>
             <input value={draft.buchungstext || ''} onChange={(e) => setDraft({ ...draft, buchungstext: e.target.value })} />
+            <label>Ausgang</label>
+            <div style={{ color: 'var(--color-muted)' }}>{Number(draft.debit || 0).toLocaleString('de-DE')} <span style={{ fontSize: 11 }}>(nicht änderbar)</span></div>
+            <label>Eingang</label>
+            <div style={{ color: 'var(--color-muted)' }}>{Number(draft.credit || 0).toLocaleString('de-DE')} <span style={{ fontSize: 11 }}>(nicht änderbar)</span></div>
+            <label>Saldo</label>
+            <div style={{ color: 'var(--color-muted)' }}>{Number(draft.saldo || 0).toLocaleString('de-DE')} <span style={{ fontSize: 11 }}>(nicht änderbar)</span></div>
             <label>Konto (Kontenplan)</label>
             <select value={draft.konto_neu || ''} onChange={(e) => setDraft({ ...draft, konto_neu: e.target.value })} style={{ width: 320 }}>
               <option value="???">??? (ungeklärt)</option>
@@ -145,12 +151,12 @@ export default function Bankbuch() {
         </div>
       )}
 
-      <div style={{ background: 'var(--color-surface)', borderRadius: 8, boxShadow: 'var(--shadow)', overflow: 'auto', maxHeight: '75vh' }}>
-        <table style={{ whiteSpace: 'nowrap' }}>
+      <div style={{ background: 'var(--color-surface)', borderRadius: 8, boxShadow: 'var(--shadow)', overflow: 'auto', maxHeight: '78vh' }}>
+        <table style={{ whiteSpace: 'nowrap', fontSize: 12, borderCollapse: 'collapse' }}>
           <thead>
-            <tr>
-              <th></th><th>Datum</th><th>Konto</th><th>Buchungstext</th><th>Text aus Bankauszug</th>
-              <th>Konto-Nr (Kontenplan)</th><th>Ausgang</th><th>Eingang</th><th>Status</th><th>Notiz</th><th>Beleg</th>
+            <tr style={{ fontSize: 11.5 }}>
+              <th style={thStyle}></th><th style={thStyle}>Datum</th><th style={thStyle}>Konto</th><th style={thStyle}>Buchungstext</th><th style={thStyle}>Bankauszug-Text</th>
+              <th style={thStyle}>Konto-Nr</th><th style={thStyle}>Ausgang</th><th style={thStyle}>Eingang</th><th style={thStyle}>Status</th><th style={thStyle}>Notiz</th><th style={thStyle}>Beleg</th>
             </tr>
           </thead>
           <tbody>
@@ -158,17 +164,17 @@ export default function Bankbuch() {
               const urls = Array.isArray(r.drive_urls) ? r.drive_urls : [];
               return (
                 <tr key={r.id}>
-                  <td><button onClick={() => startEdit(r)} style={btnGhost}>Bearbeiten</button></td>
-                  <td>{formatDatum(r.datum)}</td>
-                  <td>...{r.konto_nr}</td>
-                  <td style={{ overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 260 }}>{r.buchungstext}</td>
-                  <td style={{ fontSize: 11.5, color: 'var(--color-muted)', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 220 }}>{r.remarks || '—'}</td>
-                  <td>{r.konto_neu || '???'}</td>
-                  <td>{Number(r.debit || 0).toLocaleString('de-DE')}</td>
-                  <td>{Number(r.credit || 0).toLocaleString('de-DE')}</td>
-                  <td>{r.status}</td>
-                  <td style={{ fontSize: 11.5, overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 180 }}>{r.notiz || '—'}</td>
-                  <td>
+                  <td style={tdStyle}><button onClick={() => startEdit(r)} style={btnGhost}>Bearb.</button></td>
+                  <td style={tdStyle}>{formatDatum(r.datum)}</td>
+                  <td style={tdStyle}>...{r.konto_nr}</td>
+                  <td style={{ ...tdStyle, overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 170 }}>{r.buchungstext}</td>
+                  <td style={{ ...tdStyle, color: 'var(--color-muted)', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 140 }}>{r.remarks || '—'}</td>
+                  <td style={tdStyle}>{r.konto_neu || '???'}</td>
+                  <td style={tdStyle}>{Number(r.debit || 0).toLocaleString('de-DE')}</td>
+                  <td style={tdStyle}>{Number(r.credit || 0).toLocaleString('de-DE')}</td>
+                  <td style={tdStyle}>{r.status}</td>
+                  <td style={{ ...tdStyle, overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 130 }}>{r.notiz || '—'}</td>
+                  <td style={tdStyle}>
                     {urls.length > 0
                       ? urls.map((u, i) => <a key={i} href={u} target="_blank" rel="noreferrer" style={{ marginRight: 6 }}>#{i + 1}</a>)
                       : '—'}
@@ -182,6 +188,9 @@ export default function Bankbuch() {
     </div>
   );
 }
+
+const thStyle = { padding: '5px 8px', textAlign: 'left', borderBottom: '1px solid var(--color-border)' };
+const tdStyle = { padding: '3px 8px' };
 
 const btnPrimary = { background: 'var(--color-primary)', color: 'white', border: 'none', borderRadius: 6, padding: '6px 12px', fontSize: 12.5, fontWeight: 600 };
 const btnGhost = { background: 'none', border: '1px solid var(--color-border)', borderRadius: 6, padding: '5px 10px', fontSize: 12 };
