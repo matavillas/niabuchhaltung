@@ -10,9 +10,14 @@ const STATUS_COLORS = {
 export default function Orders() {
   const [orders, setOrders] = useState([]);
   const [itemCounts, setItemCounts] = useState({});
+  const [rooms, setRooms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
+
+  function roomName(id) {
+    return rooms.find((r) => r.id === id)?.name || `Joglo unklar (id ${id})`;
+  }
 
   async function load() {
     setLoading(true);
@@ -27,6 +32,9 @@ export default function Orders() {
     const counts = {};
     (items || []).forEach((i) => { counts[i.order_id] = (counts[i.order_id] || 0) + 1; });
     setItemCounts(counts);
+
+    const { data: roomsData } = await supabase.from('rooms').select('id,name');
+    setRooms(roomsData || []);
     setLoading(false);
   }
 
@@ -74,7 +82,7 @@ export default function Orders() {
             {visible.map((o) => (
               <tr key={o.id}>
                 <td>{o.id}</td>
-                <td>{o.table_number ? `Tisch ${o.table_number}` : o.room_id ? `Zimmer ${o.room_id}` : '—'}</td>
+                <td>{o.table_number ? `Tisch ${o.table_number}` : o.room_id ? roomName(o.room_id) : '—'}</td>
                 <td>{o.order_type || '—'}</td>
                 <td>{itemCounts[o.id] || 0}</td>
                 <td>{Number(o.total_k || 0).toLocaleString('de-DE')}</td>
