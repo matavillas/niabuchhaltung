@@ -19,8 +19,7 @@ export default function Orders() {
     const { data, error } = await supabase
       .from('orders')
       .select('*')
-      .order('created_at', { ascending: false })
-      .limit(200);
+      .order('created_at', { ascending: false });
     if (error) { setError(error.message); setLoading(false); return; }
     setOrders(data);
 

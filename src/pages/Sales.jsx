@@ -16,7 +16,7 @@ export default function Sales() {
   async function load() {
     setLoading(true);
     const [salesRes, roomsRes] = await Promise.all([
-      supabase.from('sales').select('*').order('created_at', { ascending: false }).limit(300),
+      supabase.from('sales').select('*').order('created_at', { ascending: false }),
       supabase.from('rooms').select('id,name'),
     ]);
     if (salesRes.error) setError(salesRes.error.message);
