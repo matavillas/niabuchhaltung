@@ -16,6 +16,7 @@ export default function Bankbuch() {
   const [accountFilter, setAccountFilter] = useState('');
   const [yearFilter, setYearFilter] = useState('2026');
   const [search, setSearch] = useState('');
+  const [konten, setKonten] = useState([]);
   const [editingId, setEditingId] = useState(null);
   const [draft, setDraft] = useState(null);
   const [newUrl, setNewUrl] = useState('');
@@ -42,6 +43,9 @@ export default function Bankbuch() {
   }
 
   useEffect(() => { load(yearFilter); }, [yearFilter]);
+  useEffect(() => {
+    supabase.from('kontenplan').select('*').order('code').then(({ data }) => setKonten(data || []));
+  }, []);
 
   function startEdit(row) {
     setEditingId(row.id);
@@ -105,7 +109,10 @@ export default function Bankbuch() {
             <label>Buchungstext</label>
             <input value={draft.buchungstext || ''} onChange={(e) => setDraft({ ...draft, buchungstext: e.target.value })} />
             <label>Konto (Kontenplan)</label>
-            <input value={draft.konto_neu || ''} onChange={(e) => setDraft({ ...draft, konto_neu: e.target.value })} style={{ width: 100 }} />
+            <select value={draft.konto_neu || ''} onChange={(e) => setDraft({ ...draft, konto_neu: e.target.value })} style={{ width: 320 }}>
+              <option value="???">??? (ungeklärt)</option>
+              {konten.map((k) => <option key={k.code} value={k.code}>{k.code} — {k.name}</option>)}
+            </select>
             <label>Status</label>
             <select value={draft.status || ''} onChange={(e) => setDraft({ ...draft, status: e.target.value })} style={{ width: 100 }}>
               {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}

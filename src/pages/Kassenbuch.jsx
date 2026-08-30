@@ -15,6 +15,7 @@ export default function Kassenbuch() {
   const [statusFilter, setStatusFilter] = useState('');
   const [yearFilter, setYearFilter] = useState('2026');
   const [search, setSearch] = useState('');
+  const [konten, setKonten] = useState([]);
   const [editingId, setEditingId] = useState(null);
   const [draft, setDraft] = useState(null);
   const [newUrl, setNewUrl] = useState('');
@@ -41,6 +42,9 @@ export default function Kassenbuch() {
   }
 
   useEffect(() => { load(yearFilter); }, [yearFilter]);
+  useEffect(() => {
+    supabase.from('kontenplan').select('*').order('code').then(({ data }) => setKonten(data || []));
+  }, []);
 
   function startEdit(row) {
     setEditingId(row.id);
@@ -109,7 +113,10 @@ export default function Kassenbuch() {
             <label>Beschreibung</label>
             <input value={draft.beschreibung || ''} onChange={(e) => setDraft({ ...draft, beschreibung: e.target.value })} />
             <label>Konto</label>
-            <input value={draft.konto || ''} onChange={(e) => setDraft({ ...draft, konto: e.target.value })} style={{ width: 100 }} />
+            <select value={draft.konto || ''} onChange={(e) => setDraft({ ...draft, konto: e.target.value })} style={{ width: 320 }}>
+              <option value="???">??? (ungeklärt)</option>
+              {konten.map((k) => <option key={k.code} value={k.code}>{k.code} — {k.name}</option>)}
+            </select>
             <label>Einnahme</label>
             <input type="number" value={draft.einnahme || 0} onChange={(e) => setDraft({ ...draft, einnahme: e.target.value })} style={{ width: 140 }} />
             <label>Ausgabe</label>
