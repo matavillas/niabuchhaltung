@@ -15,6 +15,7 @@ export default function Bankbuch() {
   const [error, setError] = useState('');
   const [accountFilter, setAccountFilter] = useState('');
   const [yearFilter, setYearFilter] = useState('2026');
+  const [search, setSearch] = useState('');
   const [editingId, setEditingId] = useState(null);
   const [draft, setDraft] = useState(null);
   const [newUrl, setNewUrl] = useState('');
@@ -66,7 +67,13 @@ export default function Bankbuch() {
     else { setEditingId(null); setDraft(null); load(yearFilter); }
   }
 
-  const visible = accountFilter ? rows.filter((r) => r.konto_nr === accountFilter) : rows;
+  const bySearch = (r) => {
+    if (!search.trim()) return true;
+    const q = search.trim().toLowerCase();
+    return [r.buchungstext, r.remarks, r.notiz, r.konto_neu, r.konto_nr, r.status]
+      .some((f) => (f || '').toString().toLowerCase().includes(q));
+  };
+  const visible = rows.filter((r) => (!accountFilter || r.konto_nr === accountFilter) && bySearch(r));
 
   return (
     <div>
@@ -80,6 +87,12 @@ export default function Bankbuch() {
           <option value="">Alle Konten</option>
           {ACCOUNTS.map((a) => <option key={a} value={a}>...{a}</option>)}
         </select>
+        <input
+          placeholder="Suche (Buchungstext, Notiz, Konto, Status)…"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          style={{ padding: '6px 10px', minWidth: 260 }}
+        />
         <span style={{ marginLeft: 'auto', fontSize: 13, color: 'var(--color-muted)', alignSelf: 'center' }}>
           {loading ? 'Lädt…' : `${visible.length} Einträge`}
         </span>

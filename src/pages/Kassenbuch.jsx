@@ -14,6 +14,7 @@ export default function Kassenbuch() {
   const [error, setError] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [yearFilter, setYearFilter] = useState('2026');
+  const [search, setSearch] = useState('');
   const [editingId, setEditingId] = useState(null);
   const [draft, setDraft] = useState(null);
   const [newUrl, setNewUrl] = useState('');
@@ -67,7 +68,13 @@ export default function Kassenbuch() {
     else { setEditingId(null); setDraft(null); load(yearFilter); }
   }
 
-  const visible = statusFilter ? rows.filter((r) => r.status === statusFilter) : rows;
+  const bySearch = (r) => {
+    if (!search.trim()) return true;
+    const q = search.trim().toLowerCase();
+    return [r.beschreibung, r.notiz, r.konto, r.konto_name, r.status]
+      .some((f) => (f || '').toString().toLowerCase().includes(q));
+  };
+  const visible = rows.filter((r) => (!statusFilter || r.status === statusFilter) && bySearch(r));
 
   return (
     <div>
@@ -84,6 +91,12 @@ export default function Kassenbuch() {
           <option value="✔️">✔️ beleglos ok</option>
           <option value="📷">📷 unleserlich</option>
         </select>
+        <input
+          placeholder="Suche (Beschreibung, Notiz, Konto)…"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          style={{ padding: '6px 10px', minWidth: 260 }}
+        />
         <span style={{ marginLeft: 'auto', fontSize: 13, color: 'var(--color-muted)', alignSelf: 'center' }}>
           {loading ? 'Lädt…' : `${visible.length} Einträge`}
         </span>
