@@ -6,6 +6,7 @@ const YEAR_OPTIONS = [
   { value: '2026', label: '2026' },
   { value: 'alle', label: 'Gesamter Zeitraum (2023–2026)' },
 ];
+const STATUSES = ['⚠️', '✅', '✔️', '📷'];
 
 export default function Kassenbuch() {
   const [rows, setRows] = useState([]);
@@ -13,11 +14,14 @@ export default function Kassenbuch() {
   const [error, setError] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [yearFilter, setYearFilter] = useState('2026');
+  const [editingId, setEditingId] = useState(null);
+  const [draft, setDraft] = useState(null);
+  const [newUrl, setNewUrl] = useState('');
 
   async function load(year) {
     setLoading(true);
     setError('');
-    const PAGE_SIZE = 1000; // Supabase/PostgREST-Obergrenze pro Abfrage
+    const PAGE_SIZE = 1000;
     let all = [];
     let from = 0;
     while (true) {
@@ -36,6 +40,32 @@ export default function Kassenbuch() {
   }
 
   useEffect(() => { load(yearFilter); }, [yearFilter]);
+
+  function startEdit(row) {
+    setEditingId(row.id);
+    setDraft({ ...row, drive_urls: Array.isArray(row.drive_urls) ? [...row.drive_urls] : [] });
+    setNewUrl('');
+  }
+
+  function addUrl() {
+    const u = newUrl.trim();
+    if (!u) return;
+    setDraft({ ...draft, drive_urls: [...draft.drive_urls, u] });
+    setNewUrl('');
+  }
+
+  function removeUrl(idx) {
+    setDraft({ ...draft, drive_urls: draft.drive_urls.filter((_, i) => i !== idx) });
+  }
+
+  async function saveEdit() {
+    const { id, beschreibung, konto, einnahme, ausgabe, status, notiz, drive_urls } = draft;
+    const { error } = await supabase.from('kassenbuch').update({
+      beschreibung, konto, einnahme: Number(einnahme) || 0, ausgabe: Number(ausgabe) || 0, status, notiz, drive_urls,
+    }).eq('id', id);
+    if (error) setError(error.message);
+    else { setEditingId(null); setDraft(null); load(yearFilter); }
+  }
 
   const visible = statusFilter ? rows.filter((r) => r.status === statusFilter) : rows;
 
@@ -58,23 +88,70 @@ export default function Kassenbuch() {
           {loading ? 'Lädt…' : `${visible.length} Einträge`}
         </span>
       </div>
+
+      {editingId && draft && (
+        <div style={{ background: 'var(--color-surface)', borderRadius: 8, boxShadow: 'var(--shadow)', padding: 14, marginBottom: 14 }}>
+          <div style={{ fontWeight: 600, marginBottom: 10 }}>Bearbeite: {formatDatum(draft.datum)} — {draft.beschreibung}</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: 8, alignItems: 'center', maxWidth: 700 }}>
+            <label>Beschreibung</label>
+            <input value={draft.beschreibung || ''} onChange={(e) => setDraft({ ...draft, beschreibung: e.target.value })} />
+            <label>Konto</label>
+            <input value={draft.konto || ''} onChange={(e) => setDraft({ ...draft, konto: e.target.value })} style={{ width: 100 }} />
+            <label>Einnahme</label>
+            <input type="number" value={draft.einnahme || 0} onChange={(e) => setDraft({ ...draft, einnahme: e.target.value })} style={{ width: 140 }} />
+            <label>Ausgabe</label>
+            <input type="number" value={draft.ausgabe || 0} onChange={(e) => setDraft({ ...draft, ausgabe: e.target.value })} style={{ width: 140 }} />
+            <label>Status</label>
+            <select value={draft.status || ''} onChange={(e) => setDraft({ ...draft, status: e.target.value })} style={{ width: 100 }}>
+              {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
+            </select>
+            <label>Notiz</label>
+            <input value={draft.notiz || ''} onChange={(e) => setDraft({ ...draft, notiz: e.target.value })} />
+            <label>Belege</label>
+            <div>
+              {draft.drive_urls.map((u, i) => (
+                <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 4 }}>
+                  <a href={u} target="_blank" rel="noreferrer" style={{ fontSize: 12.5, wordBreak: 'break-all' }}>{u}</a>
+                  <button onClick={() => removeUrl(i)} style={btnDanger}>✕</button>
+                </div>
+              ))}
+              <div style={{ display: 'flex', gap: 8 }}>
+                <input
+                  placeholder="Google-Drive-Link einfügen…"
+                  value={newUrl}
+                  onChange={(e) => setNewUrl(e.target.value)}
+                  style={{ flex: 1 }}
+                />
+                <button onClick={addUrl} style={btnGhost}>+ Hinzufügen</button>
+              </div>
+            </div>
+          </div>
+          <div style={{ marginTop: 12 }}>
+            <button onClick={saveEdit} style={btnPrimary}>Speichern</button>{' '}
+            <button onClick={() => { setEditingId(null); setDraft(null); }} style={btnGhost}>Abbrechen</button>
+          </div>
+        </div>
+      )}
+
       <div style={{ background: 'var(--color-surface)', borderRadius: 8, boxShadow: 'var(--shadow)', overflow: 'auto', maxHeight: '75vh' }}>
-        <table>
+        <table style={{ whiteSpace: 'nowrap' }}>
           <thead>
-            <tr><th>Datum</th><th>Beschreibung</th><th>Konto</th><th>Einnahme</th><th>Ausgabe</th><th>Saldo</th><th>Status</th><th>Beleg</th></tr>
+            <tr><th></th><th>Datum</th><th>Beschreibung</th><th>Konto</th><th>Einnahme</th><th>Ausgabe</th><th>Saldo</th><th>Status</th><th>Notiz</th><th>Beleg</th></tr>
           </thead>
           <tbody>
             {visible.map((r) => {
               const urls = Array.isArray(r.drive_urls) ? r.drive_urls : [];
               return (
                 <tr key={r.id}>
+                  <td><button onClick={() => startEdit(r)} style={btnGhost}>Bearbeiten</button></td>
                   <td>{formatDatum(r.datum)}</td>
-                  <td>{r.beschreibung}</td>
+                  <td style={{ overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 260 }}>{r.beschreibung}</td>
                   <td>{r.konto}{r.konto_name ? ` — ${r.konto_name}` : ''}</td>
                   <td>{Number(r.einnahme || 0).toLocaleString('de-DE')}</td>
                   <td>{Number(r.ausgabe || 0).toLocaleString('de-DE')}</td>
                   <td>{Number(r.saldo || 0).toLocaleString('de-DE')}</td>
                   <td>{r.status}</td>
+                  <td style={{ fontSize: 11.5, overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 180 }}>{r.notiz || '—'}</td>
                   <td>
                     {urls.length > 0
                       ? urls.map((u, i) => <a key={i} href={u} target="_blank" rel="noreferrer" style={{ marginRight: 6 }}>#{i + 1}</a>)
@@ -89,3 +166,7 @@ export default function Kassenbuch() {
     </div>
   );
 }
+
+const btnPrimary = { background: 'var(--color-primary)', color: 'white', border: 'none', borderRadius: 6, padding: '6px 12px', fontSize: 12.5, fontWeight: 600 };
+const btnGhost = { background: 'none', border: '1px solid var(--color-border)', borderRadius: 6, padding: '5px 10px', fontSize: 12 };
+const btnDanger = { background: 'none', border: 'none', color: 'var(--color-danger)', fontSize: 13 };
