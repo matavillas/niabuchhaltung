@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 
-const CATEGORIES = ['restaurant', 'room', 'spa', 'dive', 'other'];
+const CATEGORIES = ['hotel', 'restaurant', 'minibar'];
+const CATEGORY_LABELS = { hotel: 'Hotel', restaurant: 'Restaurant', minibar: 'Minibar' };
 const PAYMENT_METHODS = ['cash', 'card', 'qris', 'bank_transfer', 'ota'];
 
 export default function Sales() {
@@ -72,7 +73,7 @@ export default function Sales() {
       <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 14 }}>
         <select value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)}>
           <option value="">Alle Kategorien</option>
-          {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+          {CATEGORIES.map((c) => <option key={c} value={c}>{CATEGORY_LABELS[c]}</option>)}
         </select>
         <button onClick={addSale} style={btnPrimary}>+ Neue Buchung</button>
         <span style={{ marginLeft: 'auto', fontSize: 13, color: 'var(--color-muted)' }}>
@@ -94,7 +95,7 @@ export default function Sales() {
                   <td><input type="date" value={draft.created_at?.slice(0, 10) || ''} onChange={(e) => setDraft({ ...draft, created_at: e.target.value })} /></td>
                   <td>
                     <select value={draft.revenue_category || ''} onChange={(e) => setDraft({ ...draft, revenue_category: e.target.value })}>
-                      {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                      {CATEGORIES.map((c) => <option key={c} value={c}>{CATEGORY_LABELS[c]}</option>)}
                     </select>
                   </td>
                   <td>
@@ -119,7 +120,7 @@ export default function Sales() {
               ) : (
                 <tr key={s.id} onClick={() => startEdit(s)} style={{ cursor: 'pointer' }}>
                   <td>{s.created_at ? new Date(s.created_at).toLocaleDateString('de-DE') : '—'}</td>
-                  <td>{s.revenue_category}</td>
+                  <td>{CATEGORY_LABELS[s.revenue_category] || s.revenue_category}</td>
                   <td>{s.room_id ? roomName(s.room_id) : '—'}</td>
                   <td>{s.guest_name || '—'}</td>
                   <td>{Number(s.total_k || 0).toLocaleString('de-DE')}</td>

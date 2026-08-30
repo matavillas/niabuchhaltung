@@ -7,6 +7,7 @@ const YEAR_OPTIONS = [
   { value: '2026', label: '2026' },
   { value: 'alle', label: 'Gesamter Zeitraum (2023–2026)' },
 ];
+const PAGE_SIZE = 1000; // Supabase/PostgREST-Obergrenze pro Abfrage
 
 export default function Bankbuch() {
   const [rows, setRows] = useState([]);
@@ -18,14 +19,20 @@ export default function Bankbuch() {
   async function load(year) {
     setLoading(true);
     setError('');
-    let query = supabase.from('bankbuch').select('*').order('datum', { ascending: false });
-    if (year !== 'alle') {
-      query = query.gte('datum', `${year}-01-01`).lte('datum', `${year}-12-31`);
+    let all = [];
+    let from = 0;
+    while (true) {
+      let query = supabase.from('bankbuch').select('*').order('datum', { ascending: false });
+      if (year !== 'alle') {
+        query = query.gte('datum', `${year}-01-01`).lte('datum', `${year}-12-31`);
+      }
+      const { data, error } = await query.range(from, from + PAGE_SIZE - 1);
+      if (error) { setError(error.message); break; }
+      all = all.concat(data);
+      if (data.length < PAGE_SIZE) break; // letzte Seite erreicht
+      from += PAGE_SIZE;
     }
-    // Kein .limit() — Endlostabelle, alle Zeilen des gewählten Zeitraums werden geladen.
-    const { data, error } = await query;
-    if (error) setError(error.message);
-    else setRows(data);
+    setRows(all);
     setLoading(false);
   }
 
@@ -52,7 +59,10 @@ export default function Bankbuch() {
       <div style={{ background: 'var(--color-surface)', borderRadius: 8, boxShadow: 'var(--shadow)', overflow: 'auto', maxHeight: '75vh' }}>
         <table>
           <thead>
-            <tr><th>Datum</th><th>Konto</th><th>Buchungstext</th><th>Konto-Nr (Kontenplan)</th><th>Debit</th><th>Credit</th><th>Status</th><th>Beleg</th></tr>
+            <tr>
+              <th>Datum</th><th>Konto</th><th>Buchungstext</th><th>Text aus Bankauszug</th>
+              <th>Konto-Nr (Kontenplan)</th><th>Ausgang</th><th>Eingang</th><th>Status</th><th>Beleg</th>
+            </tr>
           </thead>
           <tbody>
             {visible.map((r) => {
@@ -62,6 +72,7 @@ export default function Bankbuch() {
                   <td>{formatDatum(r.datum)}</td>
                   <td>...{r.konto_nr}</td>
                   <td>{r.buchungstext}</td>
+                  <td>{r.remarks || '—'}</td>
                   <td>{r.konto_neu || '???'}</td>
                   <td>{Number(r.debit || 0).toLocaleString('de-DE')}</td>
                   <td>{Number(r.credit || 0).toLocaleString('de-DE')}</td>

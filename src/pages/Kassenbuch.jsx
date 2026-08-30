@@ -17,14 +17,21 @@ export default function Kassenbuch() {
   async function load(year) {
     setLoading(true);
     setError('');
-    let query = supabase.from('kassenbuch').select('*').order('datum', { ascending: false });
-    if (year !== 'alle') {
-      query = query.gte('datum', `${year}-01-01`).lte('datum', `${year}-12-31`);
+    const PAGE_SIZE = 1000; // Supabase/PostgREST-Obergrenze pro Abfrage
+    let all = [];
+    let from = 0;
+    while (true) {
+      let query = supabase.from('kassenbuch').select('*').order('datum', { ascending: false });
+      if (year !== 'alle') {
+        query = query.gte('datum', `${year}-01-01`).lte('datum', `${year}-12-31`);
+      }
+      const { data, error } = await query.range(from, from + PAGE_SIZE - 1);
+      if (error) { setError(error.message); break; }
+      all = all.concat(data);
+      if (data.length < PAGE_SIZE) break;
+      from += PAGE_SIZE;
     }
-    // Kein .limit() — Endlostabelle, alle Zeilen des gewählten Zeitraums werden geladen.
-    const { data, error } = await query;
-    if (error) setError(error.message);
-    else setRows(data);
+    setRows(all);
     setLoading(false);
   }
 
