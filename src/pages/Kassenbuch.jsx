@@ -168,13 +168,13 @@ export default function Kassenbuch() {
                 <tr key={r.id}>
                   <td style={tdStyle}><button onClick={() => startEdit(r)} style={btnGhost}>Bearb.</button></td>
                   <td style={tdStyle}>{formatDatum(r.datum)}</td>
-                  <td style={{ ...tdStyle, overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 200 }}>{r.beschreibung}</td>
-                  <td style={tdStyle}>{r.konto}{r.konto_name ? ` — ${r.konto_name}` : ''}</td>
+                  <td style={{ ...tdStyle, overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 170 }}>{r.beschreibung}</td>
+                  <td style={{ ...tdStyle, overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 60 }}>{r.konto}</td>
                   <td style={tdStyle}>{Number(r.einnahme || 0).toLocaleString('de-DE')}</td>
                   <td style={tdStyle}>{Number(r.ausgabe || 0).toLocaleString('de-DE')}</td>
                   <td style={tdStyle}>{Number(r.saldo || 0).toLocaleString('de-DE')}</td>
                   <td style={tdStyle}>{r.status}</td>
-                  <td style={{ ...tdStyle, fontSize: 11, overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 140 }}>{r.notiz || '—'}</td>
+                  <td style={{ ...tdStyle, fontSize: 11, overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 100 }}>{r.notiz || '—'}</td>
                   <td style={tdStyle}>
                     {urls.length > 0
                       ? urls.map((u, i) => <a key={i} href={u} target="_blank" rel="noreferrer" style={{ marginRight: 6 }}>#{i + 1}</a>)
