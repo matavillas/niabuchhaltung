@@ -144,6 +144,9 @@ export default function PetitCashAdit() {
               <div style={{ display: 'flex', gap: 8 }}>
                 <input placeholder="Google-Drive-Link einfügen…" value={newUrl} onChange={(e) => setNewUrl(e.target.value)} style={{ flex: 1 }} />
                 <button onClick={addUrl} style={btnGhost}>+ Hinzufügen</button>
+                <a href="https://drive.google.com/drive/folders/153obLPJrMTLBN9IUlpN7EqWKWtFvNVWR" target="_blank" rel="noreferrer">
+                  <button type="button" style={btnGhost}>📁 Petit-Cash-Ordner öffnen</button>
+                </a>
               </div>
             </div>
           </div>

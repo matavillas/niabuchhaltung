@@ -141,6 +141,9 @@ export default function Bankbuch() {
                   style={{ flex: 1 }}
                 />
                 <button onClick={addUrl} style={btnGhost}>+ Hinzufügen</button>
+                <a href="https://drive.google.com/drive/folders/1BoId298-Fp9BYmYHdJF1Z0rG7qBHDfFU" target="_blank" rel="noreferrer">
+                  <button type="button" style={btnGhost}>📁 Beleg-Ordner öffnen</button>
+                </a>
               </div>
             </div>
           </div>
