@@ -10,6 +10,7 @@ import Orders from './pages/Orders';
 import Zahlungsabgleich from './pages/Zahlungsabgleich';
 import Kontenplan from './pages/Kontenplan';
 import PetitCashAdit from './pages/PetitCashAdit';
+import TerminalLog from './pages/TerminalLog';
 
 const NAV_ITEMS = [
   { to: '/', label: 'Übersicht', end: true },
@@ -22,15 +23,20 @@ const NAV_ITEMS = [
   { to: '/sales', label: 'Umsätze' },
   { to: '/orders', label: 'Bestellungen' },
 ];
+const GENERALMANAGER_ONLY_NAV = [
+  { to: '/terminal-log', label: 'Terminal-Log' },
+];
 
 function Shell() {
   const { profile, signOut } = useAuth();
+  const isGeneralmanager = profile?.role === 'generalmanager';
+  const navItems = isGeneralmanager ? [...NAV_ITEMS, ...GENERALMANAGER_ONLY_NAV] : NAV_ITEMS;
   return (
     <div style={{ display: 'flex', minHeight: '100vh' }}>
       <aside style={styles.sidebar}>
         <div style={styles.brand}>Mata Villas</div>
         <nav style={{ display: 'flex', flexDirection: 'column', gap: 2, marginTop: 20 }}>
-          {NAV_ITEMS.map((item) => (
+          {navItems.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
@@ -62,6 +68,10 @@ function Shell() {
           <Route path="/rooms" element={<Rooms />} />
           <Route path="/sales" element={<Sales />} />
           <Route path="/orders" element={<Orders />} />
+          <Route
+            path="/terminal-log"
+            element={isGeneralmanager ? <TerminalLog /> : <Navigate to="/" replace />}
+          />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
