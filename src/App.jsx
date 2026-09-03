@@ -11,6 +11,7 @@ import Zahlungsabgleich from './pages/Zahlungsabgleich';
 import Kontenplan from './pages/Kontenplan';
 import PetitCashAdit from './pages/PetitCashAdit';
 import TerminalLog from './pages/TerminalLog';
+import RmsTerminals from './pages/RmsTerminals';
 
 const NAV_ITEMS = [
   { to: '/', label: 'Übersicht', end: true },
@@ -25,6 +26,7 @@ const NAV_ITEMS = [
 ];
 const GENERALMANAGER_ONLY_NAV = [
   { to: '/terminal-log', label: 'Terminal-Log' },
+  { to: '/rms-terminals', label: 'RMS-Terminals' },
 ];
 
 function Shell() {
@@ -71,6 +73,10 @@ function Shell() {
           <Route
             path="/terminal-log"
             element={isGeneralmanager ? <TerminalLog /> : <Navigate to="/" replace />}
+          />
+          <Route
+            path="/rms-terminals"
+            element={isGeneralmanager ? <RmsTerminals /> : <Navigate to="/" replace />}
           />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
