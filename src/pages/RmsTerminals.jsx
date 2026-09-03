@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { supabase } from '../lib/supabaseClient';
 
 const TERMINALS = [
   { key: 'manager', label: 'Manager', file: 'manager_terminal.html' },
@@ -10,19 +11,91 @@ const TERMINALS = [
 ];
 
 const BASE_URL = 'https://matavillas.github.io/Tourmanager/';
+const SS_STAFF_KEY = 'rms_autostaff_id';
+const SS_PIN_KEY = 'rms_autostaff_pin';
 
 export default function RmsTerminals() {
   const [active, setActive] = useState(TERMINALS[0].key);
   const [reloadKey, setReloadKey] = useState(0);
+  const [staffList, setStaffList] = useState([]);
+  const [selectedStaff, setSelectedStaff] = useState(sessionStorage.getItem(SS_STAFF_KEY) || '');
+  const [pinDraft, setPinDraft] = useState('');
+  const [autoLoginActive, setAutoLoginActive] = useState(
+    !!(sessionStorage.getItem(SS_STAFF_KEY) && sessionStorage.getItem(SS_PIN_KEY))
+  );
+  const [showSetup, setShowSetup] = useState(!autoLoginActive);
+
+  useEffect(() => {
+    supabase.from('staff').select('id,fname,lname').eq('active', true).order('fname').then(({ data }) => {
+      setStaffList(data || []);
+    });
+  }, []);
+
+  function saveAutoLogin() {
+    if (!selectedStaff || pinDraft.length !== 4) return;
+    sessionStorage.setItem(SS_STAFF_KEY, selectedStaff);
+    sessionStorage.setItem(SS_PIN_KEY, pinDraft);
+    setAutoLoginActive(true);
+    setShowSetup(false);
+    setPinDraft('');
+    setReloadKey((k) => k + 1);
+  }
+
+  function clearAutoLogin() {
+    sessionStorage.removeItem(SS_STAFF_KEY);
+    sessionStorage.removeItem(SS_PIN_KEY);
+    setAutoLoginActive(false);
+    setShowSetup(true);
+    setReloadKey((k) => k + 1);
+  }
+
   const current = TERMINALS.find((t) => t.key === active);
-  const url = BASE_URL + current.file;
+  let url = BASE_URL + current.file;
+  const storedStaff = sessionStorage.getItem(SS_STAFF_KEY);
+  const storedPin = sessionStorage.getItem(SS_PIN_KEY);
+  if (autoLoginActive && storedStaff && storedPin && current.key !== 'tischplan') {
+    url += `?autostaff=${encodeURIComponent(storedStaff)}&autopin=${encodeURIComponent(storedPin)}`;
+  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       <h2 style={{ color: 'var(--color-primary)', marginBottom: 6 }}>RMS-Terminals</h2>
-      <div style={{ fontSize: 12.5, color: 'var(--color-muted)', marginBottom: 14 }}>
-        Live-Ansicht der Terminal-Oberflächen (dasselbe System wie auf den Geräten vor Ort). Login jeweils per PIN wie gewohnt.
+      <div style={{ fontSize: 12.5, color: 'var(--color-muted)', marginBottom: 10 }}>
+        Live-Ansicht der Terminal-Oberflächen (dasselbe System wie auf den Geräten vor Ort).
       </div>
+
+      {showSetup ? (
+        <div style={{
+          background: 'var(--color-surface)', borderRadius: 8, boxShadow: 'var(--shadow)',
+          padding: 12, marginBottom: 14, display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap',
+        }}>
+          <span style={{ fontSize: 12.5, fontWeight: 600 }}>Auto-Login für diese Sitzung einrichten:</span>
+          <select value={selectedStaff} onChange={(e) => setSelectedStaff(e.target.value)} style={{ padding: '5px 8px' }}>
+            <option value="">— Mitarbeiter —</option>
+            {staffList.map((s) => <option key={s.id} value={s.id}>{s.fname} {s.lname || ''}</option>)}
+          </select>
+          <input
+            type="password"
+            inputMode="numeric"
+            maxLength={4}
+            placeholder="PIN (4-stellig)"
+            value={pinDraft}
+            onChange={(e) => setPinDraft(e.target.value.replace(/\D/g, '').slice(0, 4))}
+            style={{ padding: '5px 8px', width: 100 }}
+          />
+          <button onClick={saveAutoLogin} disabled={!selectedStaff || pinDraft.length !== 4} style={btnPrimary}>
+            Speichern für diese Sitzung
+          </button>
+          <span style={{ fontSize: 11, color: 'var(--color-muted)' }}>
+            PIN wird nur im Browser-Tab gespeichert (verschwindet beim Schließen), nie im Code oder auf dem Server.
+          </span>
+        </div>
+      ) : (
+        <div style={{ fontSize: 12, color: 'var(--color-muted)', marginBottom: 10, display: 'flex', gap: 10, alignItems: 'center' }}>
+          ✓ Auto-Login aktiv für diese Sitzung.
+          <button onClick={clearAutoLogin} style={btnGhost}>Zurücksetzen / andere Person</button>
+        </div>
+      )}
 
       <div style={{ display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap', alignItems: 'center' }}>
         {TERMINALS.map((t) => (
@@ -60,7 +133,7 @@ export default function RmsTerminals() {
       </div>
 
       <div style={{ fontSize: 11, color: 'var(--color-muted)', marginTop: 8 }}>
-        Falls die Ansicht leer bleibt oder sich nicht lädt (manche Browser blockieren eingebettete fremde Seiten): oben rechts "In neuem Tab öffnen" nutzen.
+        Falls die Ansicht leer bleibt oder sich nicht lädt (manche Browser blockieren eingebettete fremde Seiten): oben rechts "In neuem Tab öffnen" nutzen — Auto-Login greift dort ebenfalls, solange die Sitzung eingerichtet ist.
       </div>
     </div>
   );
@@ -68,3 +141,5 @@ export default function RmsTerminals() {
 
 const btnTab = { border: '1px solid var(--color-border)', borderRadius: 6, padding: '6px 12px', fontSize: 12.5, cursor: 'pointer' };
 const btnGhost = { background: 'none', border: '1px solid var(--color-border)', borderRadius: 6, padding: '6px 10px', fontSize: 12, cursor: 'pointer' };
+const btnPrimary = { background: 'var(--color-primary)', color: 'white', border: 'none', borderRadius: 6, padding: '6px 14px', fontSize: 12.5, fontWeight: 600, cursor: 'pointer' };
+
