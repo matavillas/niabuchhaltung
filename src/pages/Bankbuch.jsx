@@ -16,6 +16,10 @@ export default function Bankbuch() {
   const [accountFilter, setAccountFilter] = useState('');
   const [yearFilter, setYearFilter] = useState('2026');
   const [search, setSearch] = useState('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+  const [amountMin, setAmountMin] = useState('');
+  const [amountMax, setAmountMax] = useState('');
   const [konten, setKonten] = useState([]);
   const [editingId, setEditingId] = useState(null);
   const [draft, setDraft] = useState(null);
@@ -77,7 +81,22 @@ export default function Bankbuch() {
     return [r.buchungstext, r.remarks, r.notiz, r.konto_neu, r.konto_nr, r.status]
       .some((f) => (f || '').toString().toLowerCase().includes(q));
   };
-  const visible = rows.filter((r) => (!accountFilter || r.konto_nr === accountFilter) && bySearch(r));
+  const byDate = (r) => {
+    if (dateFrom && r.datum < dateFrom) return false;
+    if (dateTo && r.datum > dateTo) return false;
+    return true;
+  };
+  const byAmount = (r) => {
+    if (!amountMin && !amountMax) return true;
+    const betrag = Math.max(Number(r.debit || 0), Number(r.credit || 0));
+    if (amountMin && betrag < Number(amountMin)) return false;
+    if (amountMax && betrag > Number(amountMax)) return false;
+    return true;
+  };
+  const visible = rows.filter((r) => (!accountFilter || r.konto_nr === accountFilter) && bySearch(r) && byDate(r) && byAmount(r));
+  function resetFilters() {
+    setSearch(''); setDateFrom(''); setDateTo(''); setAmountMin(''); setAmountMax(''); setAccountFilter('');
+  }
 
   return (
     <div>
@@ -100,6 +119,19 @@ export default function Bankbuch() {
         <span style={{ marginLeft: 'auto', fontSize: 13, color: 'var(--color-muted)', alignSelf: 'center' }}>
           {loading ? 'Lädt…' : `${visible.length} Einträge`}
         </span>
+      </div>
+      <div style={{ display: 'flex', gap: 10, marginBottom: 14, alignItems: 'center', flexWrap: 'wrap' }}>
+        <label style={{ fontSize: 12, color: 'var(--color-muted)' }}>Datum von</label>
+        <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} style={{ padding: '5px 8px' }} />
+        <label style={{ fontSize: 12, color: 'var(--color-muted)' }}>bis</label>
+        <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} style={{ padding: '5px 8px' }} />
+        <label style={{ fontSize: 12, color: 'var(--color-muted)', marginLeft: 10 }}>Betrag von</label>
+        <input type="number" placeholder="min" value={amountMin} onChange={(e) => setAmountMin(e.target.value)} style={{ padding: '5px 8px', width: 110 }} />
+        <label style={{ fontSize: 12, color: 'var(--color-muted)' }}>bis</label>
+        <input type="number" placeholder="max" value={amountMax} onChange={(e) => setAmountMax(e.target.value)} style={{ padding: '5px 8px', width: 110 }} />
+        {(dateFrom || dateTo || amountMin || amountMax || search || accountFilter) && (
+          <button onClick={resetFilters} style={btnGhost}>Filter zurücksetzen</button>
+        )}
       </div>
 
       {editingId && draft && (
