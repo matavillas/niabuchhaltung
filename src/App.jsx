@@ -12,6 +12,7 @@ import Kontenplan from './pages/Kontenplan';
 import PetitCashAdit from './pages/PetitCashAdit';
 import TerminalLog from './pages/TerminalLog';
 import RmsTerminals from './pages/RmsTerminals';
+import AccountingLog from './pages/AccountingLog';
 
 const NAV_ITEMS = [
   { to: '/', label: 'Übersicht', end: true },
@@ -26,6 +27,7 @@ const NAV_ITEMS = [
 ];
 const GENERALMANAGER_ONLY_NAV = [
   { to: '/terminal-log', label: 'Terminal-Log' },
+  { to: '/accounting-log', label: 'Buchhaltungs-Log' },
   { to: '/rms-terminals', label: 'RMS-Terminals' },
 ];
 
@@ -73,6 +75,10 @@ function Shell() {
           <Route
             path="/terminal-log"
             element={isGeneralmanager ? <TerminalLog /> : <Navigate to="/" replace />}
+          />
+          <Route
+            path="/accounting-log"
+            element={isGeneralmanager ? <AccountingLog /> : <Navigate to="/" replace />}
           />
           <Route
             path="/rms-terminals"
