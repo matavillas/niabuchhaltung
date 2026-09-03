@@ -10,7 +10,7 @@ const TERMINALS = [
   { key: 'tischplan', label: 'Tischplan', file: 'tischplan.html' },
 ];
 
-const BASE_URL = 'https://matavillas.github.io/Tourmanager/';
+const BASE_URL = '/rms/';
 const SS_STAFF_KEY = 'rms_autostaff_id';
 const SS_PIN_KEY = 'rms_autostaff_pin';
 
@@ -133,7 +133,7 @@ export default function RmsTerminals() {
       </div>
 
       <div style={{ fontSize: 11, color: 'var(--color-muted)', marginTop: 8 }}>
-        Falls die Ansicht leer bleibt oder sich nicht lädt (manche Browser blockieren eingebettete fremde Seiten): oben rechts "In neuem Tab öffnen" nutzen — Auto-Login greift dort ebenfalls, solange die Sitzung eingerichtet ist.
+        Läuft jetzt direkt unter dieser Adresse (kein externes GitHub Pages mehr nötig).
       </div>
     </div>
   );

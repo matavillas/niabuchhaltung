@@ -1,0 +1,886 @@
+<!DOCTYPE html>
+<!-- Mata Villas v2026-08-24 20:15 -->
+<!-- Mata Villas v2026-06-08 06:15:13 -->
+<html lang="de">
+<head>
+<link rel="manifest" href="icons/manifest_manager.json"><meta name="theme-color" content="#1E2838">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Manager Terminal — Mata Villas</title>
+<style>
+
+:root{
+  --bg:#f0f4f8;--bg2:#fff;--border:#e2e8f0;
+  --text:#1a202c;--text2:#4a5568;--text3:#a0aec0;
+  --accent:#3182ce;--accent-bg:#ebf8ff;
+  --green:#276749;--green-bg:#f0fff4;--green-bd:#9ae6b4;
+  --orange:#c05621;--orange-bg:#fffaf0;--orange-bd:#fbd38d;
+  --red:#c53030;--red-bg:#fff5f5;--red-bd:#fed7d7;
+  --yellow:#b7791f;--yellow-bg:#fffff0;--yellow-bd:#fefcbf;
+  --font:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font);background:var(--bg);color:var(--text)}
+
+body{height:100vh;display:flex;flex-direction:column;overflow:hidden}
+
+.login{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;z-index:100}
+.login.hidden{display:none}
+.lcard{background:#fff;border-radius:16px;padding:32px 28px;width:320px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.2)}
+.lcard img{height:56px;object-fit:contain;margin-bottom:16px}
+.lcard h2{font-size:17px;font-weight:700;margin-bottom:20px}
+.lcard select{width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;font-size:14px;margin-bottom:16px;font-family:var(--font);background:#fff;outline:none}
+.pins{display:flex;gap:8px;justify-content:center;margin-bottom:16px}
+.pin{width:48px;height:52px;border:2px solid var(--border);border-radius:10px;font-size:22px;text-align:center;font-family:var(--font);background:#fff;outline:none}
+.pin:focus{border-color:var(--accent)}
+.lbtn{width:100%;padding:12px;border-radius:10px;background:var(--accent);color:#fff;border:none;font-size:15px;font-weight:600;cursor:pointer;font-family:var(--font)}
+.lerr{color:var(--red);font-size:13px;margin-top:8px;min-height:18px}
+
+
+.topbar{background:#fff;border-bottom:1px solid var(--border);padding:10px 16px;display:flex;align-items:center;gap:10px;flex-shrink:0;position:sticky;top:0;z-index:50}
+.topbar img{height:32px;object-fit:contain}
+.topbar-title{font-size:15px;font-weight:700}
+.topbar-right{margin-left:auto;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.lb{padding:5px 10px;border-radius:6px;font-size:11px;font-weight:700;border:1.5px solid var(--border);background:var(--bg);color:var(--text2);cursor:pointer;font-family:var(--font)}
+.lb.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+.topbar-user{font-size:13px;color:var(--text2)}
+.logout-btn{padding:6px 10px;border-radius:6px;border:1.5px solid var(--border);background:var(--bg);cursor:pointer;font-size:14px;font-family:var(--font)}
+
+
+.l-de,.l-en,.l-id{display:none}
+body.de .l-de,body.en .l-en,body.id .l-id{display:inline}
+
+
+.notif{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1a202c;color:#fff;border-radius:8px;padding:10px 20px;font-size:13px;z-index:200;opacity:0;pointer-events:none;transition:opacity .25s;white-space:nowrap}
+.notif.show{opacity:1}
+
+/* Layout */
+.app{flex:1;display:flex;overflow:hidden}
+.sidebar{width:200px;flex-shrink:0;background:#fff;border-right:1px solid var(--border);overflow-y:auto;padding:12px 0}
+.nav-section{padding:6px 14px;font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-top:8px}
+.nav-item{display:flex;align-items:center;gap:8px;padding:9px 14px;cursor:pointer;font-size:13px;font-weight:500;color:var(--text2);border-radius:0}
+.nav-item:hover{background:var(--bg);color:var(--text)}
+.nav-item.on{background:var(--accent-bg);color:var(--accent);font-weight:600}
+.nav-badge{background:var(--red);color:#fff;border-radius:10px;padding:1px 6px;font-size:10px;font-weight:700;margin-left:auto}
+.panel-wrap{flex:1;overflow-y:auto;padding:20px}
+.panel{display:none}
+.panel.on{display:block}
+/* Cards */
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px;margin-bottom:20px}
+.card{background:#fff;border-radius:12px;border:1px solid var(--border);padding:16px}
+.card-label{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px}
+.card-value{font-size:24px;font-weight:800}
+.card-sub{font-size:12px;color:var(--text3);margin-top:4px}
+/* Tables */
+.table-wrap{background:#fff;border-radius:12px;border:1px solid var(--border);overflow-x:auto;margin-bottom:16px}
+.table-wrap table{min-width:600px}
+.table-head{padding:12px 16px;font-size:13px;font-weight:700;border-bottom:1px solid var(--border);background:var(--bg);display:flex;justify-content:space-between;align-items:center}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{padding:8px 14px;text-align:left;font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;border-bottom:1.5px solid var(--border);background:var(--bg)}
+td{padding:10px 14px;border-bottom:1px solid var(--border)}
+tr:last-child td{border-bottom:none}
+/* Status badges */
+.badge{display:inline-flex;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700}
+.badge.new{background:var(--red-bg);color:var(--red)}
+.badge.cooking,.badge.making{background:var(--orange-bg);color:var(--orange)}
+.badge.ready{background:var(--green-bg);color:var(--green)}
+.badge.active{background:var(--green-bg);color:var(--green)}
+/* Date picker */
+.date-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
+.date-row input{padding:7px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:var(--font);outline:none}
+.date-row button{padding:7px 14px;border-radius:8px;background:var(--accent);color:#fff;border:none;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font)}
+.date-row .ghost{background:var(--bg);color:var(--text2);border:1.5px solid var(--border)}
+/* Storno button */
+.storno-btn{padding:3px 10px;border-radius:6px;border:1.5px solid var(--red);background:var(--red-bg);color:var(--red);font-size:11px;font-weight:700;cursor:pointer;font-family:var(--font)}
+/* Staff form */
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.form-group{display:flex;flex-direction:column;gap:4px}
+.form-group label{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase}
+.form-group input,.form-group select{padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:var(--font);outline:none}
+.form-btn{padding:8px 16px;border-radius:8px;background:var(--accent);color:#fff;border:none;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font)}
+.del-btn{padding:4px 10px;border-radius:6px;border:1.5px solid var(--red);background:var(--red-bg);color:var(--red);font-size:11px;font-weight:700;cursor:pointer;font-family:var(--font)}
+/* Menu toggle */
+.avail-toggle{width:36px;height:20px;border-radius:10px;background:var(--border);border:none;cursor:pointer;position:relative;transition:background .2s}
+.avail-toggle.on{background:var(--green)}
+.avail-toggle::after{content:'';position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#fff;transition:transform .2s}
+.avail-toggle.on::after{transform:translateX(16px)}
+</style>
+</head>
+<body class="de">
+
+<div class="login" id="login">
+  <div class="lcard">
+    <img class="login-logo" src="" alt="Mata Villas">
+    <h2>Manager Terminal</h2>
+    <select id="login-role"></select>
+    <div class="pins">
+      <input class="pin" type="tel" maxlength="1" inputmode="numeric" autocomplete="off" readonly>
+      <input class="pin" type="tel" maxlength="1" inputmode="numeric" autocomplete="off" readonly>
+      <input class="pin" type="tel" maxlength="1" inputmode="numeric" autocomplete="off" readonly>
+      <input class="pin" type="tel" maxlength="1" inputmode="numeric" autocomplete="off" readonly>
+    </div>
+    <button class="lbtn" onclick="doLogin()">
+      <span class="l-de">Anmelden</span><span class="l-en">Sign in</span><span class="l-id">Masuk</span>
+    </button>
+    <div class="lerr" id="login-err"></div>
+  </div>
+</div>
+<div class="topbar">
+  <img class="topbar-logo" src="" alt="Mata Villas" style="height:32px;object-fit:contain">
+  <span class="topbar-title"><span class="l-de">Manager Terminal</span><span class="l-en">Manager Terminal</span><span class="l-id">Terminal Manajer</span></span>
+  <span style="font-size:8px;color:var(--text3);font-family:monospace">240824 2015</span>
+  <div class="topbar-right">
+    <button class="lb on" onclick="setLang('de')">DE</button>
+    <button class="lb" onclick="setLang('en')">EN</button>
+    <button class="lb" onclick="setLang('id')">ID</button>
+    <span class="topbar-user" id="topbar-user"></span>
+    <button class="logout-btn" onclick="doLogout()">⏻</button>
+  </div>
+</div>
+<div class="app">
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="nav-section"><span class="l-de">Übersicht</span><span class="l-en">Overview</span><span class="l-id">Ikhtisar</span></div>
+    <div class="nav-item on" onclick="showPanel('dashboard',this)">📊 Dashboard</div>
+    <div class="nav-item" onclick="showPanel('berichte',this)">📈 <span class="l-de">Berichte</span><span class="l-en">Reports</span><span class="l-id">Laporan</span></div>
+    <div class="nav-section"><span class="l-de">Verwaltung</span><span class="l-en">Management</span><span class="l-id">Manajemen</span></div>
+    <div class="nav-item" onclick="showPanel('personal',this)">👥 <span class="l-de">Personal</span><span class="l-en">Staff</span><span class="l-id">Staf</span></div>
+    <div class="nav-item" onclick="showPanel('anmeldungen',this)">🔑 <span class="l-de">Anmeldungen</span><span class="l-en">Logins</span><span class="l-id">Login</span></div>
+    <div class="nav-item" onclick="showPanel('speisekarte',this)">🍽️ <span class="l-de">Speisekarte</span><span class="l-en">Menu</span><span class="l-id">Menu</span></div>
+    <div class="nav-item" onclick="showPanel('tischplan',this)">🗺️ <span class="l-de">Tischplan</span><span class="l-en">Floor Plan</span><span class="l-id">Denah</span></div>
+    <div class="nav-item" onclick="showPanel('bestellungen',this)">📋 <span class="l-de">Rechnungen</span><span class="l-en">Invoices</span><span class="l-id">Faktur</span></div>
+    <div class="nav-item" onclick="showPanel('rezepte',this)">📖 <span class="l-de">Rezepte Küche</span><span class="l-en">Kitchen Recipes</span><span class="l-id">Resep Dapur</span></div>
+    <div class="nav-item" onclick="showPanel('barrezepte',this)">🍹 <span class="l-de">Rezepte Bar</span><span class="l-en">Bar Recipes</span><span class="l-id">Resep Bar</span></div> <span class="l-de">Rezepte</span><span class="l-en">Recipes</span><span class="l-id">Resep</span></div>
+  </div>
+  <!-- Panel wrap -->
+  <div class="panel-wrap">
+    <!-- DASHBOARD -->
+    <div class="panel on" id="panel-dashboard">
+      <div class="cards" id="dash-cards">
+        <div class="card"><div class="card-label"><span class="l-de">Umsatz heute</span><span class="l-en">Revenue today</span><span class="l-id">Pendapatan hari ini</span></div><div class="card-value" id="d-revenue">—</div></div>
+        <div class="card"><div class="card-label"><span class="l-de">Bestellungen</span><span class="l-en">Orders</span><span class="l-id">Pesanan</span></div><div class="card-value" id="d-orders">—</div></div>
+        <div class="card"><div class="card-label"><span class="l-de">Tische belegt</span><span class="l-en">Tables busy</span><span class="l-id">Meja terisi</span></div><div class="card-value" id="d-tables">—</div></div>
+      </div>
+      <div class="table-wrap">
+        <div class="table-head"><span class="l-de">Aktive Bestellungen</span><span class="l-en">Active Orders</span><span class="l-id">Pesanan Aktif</span></div>
+        <table><thead><tr>
+          <th><span class="l-de">Tisch</span><span class="l-en">Table</span><span class="l-id">Meja</span></th>
+          <th>Status</th>
+          <th><span class="l-de">Gerichte</span><span class="l-en">Items</span><span class="l-id">Item</span></th>
+          <th>Total</th>
+          <th><span class="l-de">Zeit</span><span class="l-en">Time</span><span class="l-id">Waktu</span></th>
+        </tr></thead>
+        <tbody id="dash-orders"></tbody></table>
+      </div>
+      <!-- KITCHEN TIMER -->
+      <div class="table-wrap" style="margin-top:16px">
+        <div class="table-head">🔴 <span class="l-de">Überfällige Küchen-Bestellungen (&gt;20 Min.)</span><span class="l-en">Overdue Kitchen Orders (&gt;20 min)</span></div>
+        <table><thead><tr>
+          <th><span class="l-de">Tisch</span><span class="l-en">Table</span></th>
+          <th><span class="l-de">Artikel</span><span class="l-en">Items</span></th>
+          <th><span class="l-de">Wartezeit</span><span class="l-en">Waiting</span></th>
+        </tr></thead>
+        <tbody id="dash-overdue"></tbody></table>
+      </div>
+    </div>
+    <!-- BERICHTE -->
+    <div class="panel" id="panel-berichte">
+      <div class="date-row">
+        <input type="date" id="rpt-from"><span>–</span><input type="date" id="rpt-to">
+        <button onclick="loadReports()"><span class="l-de">Anzeigen</span><span class="l-en">Show</span><span class="l-id">Tampilkan</span></button>
+        <button class="ghost" onclick="loadReports('today')"><span class="l-de">Heute</span><span class="l-en">Today</span><span class="l-id">Hari ini</span></button>
+        <button class="ghost" onclick="loadReports('week')"><span class="l-de">Woche</span><span class="l-en">Week</span><span class="l-id">Minggu</span></button>
+      </div>
+      <div class="cards">
+        <div class="card"><div class="card-label">Total</div><div class="card-value" id="r-total">—</div></div>
+        <div class="card"><div class="card-label"><span class="l-de">Rechnungen</span><span class="l-en">Bills</span><span class="l-id">Tagihan</span></div><div class="card-value" id="r-count">—</div></div>
+        <div class="card"><div class="card-label"><span class="l-de">Bar</span><span class="l-en">Cash</span><span class="l-id">Tunai</span></div><div class="card-value" id="r-cash">—</div></div>
+        <div class="card"><div class="card-label"><span class="l-de">Karte/QRIS</span><span class="l-en">Card/QRIS</span><span class="l-id">Kartu/QRIS</span></div><div class="card-value" id="r-card">—</div></div>
+        <div class="card"><div class="card-label"><span class="l-de">Ø pro Rechnung</span><span class="l-en">Avg/bill</span></div><div class="card-value" id="r-avg">—</div></div>
+        <div class="card"><div class="card-label"><span class="l-de">Ø Zubereitung</span><span class="l-en">Avg prep</span></div><div class="card-value" id="r-avgtime">—</div></div>
+      </div>
+      <div class="table-wrap">
+        <div class="table-head" id="r-label">—</div>
+        <table><thead><tr>
+          <th>#</th>
+          <th><span class="l-de">Tisch</span><span class="l-en">Table</span><span class="l-id">Meja</span></th>
+          <th><span class="l-de">Zeit</span><span class="l-en">Time</span><span class="l-id">Waktu</span></th>
+          <th><span class="l-de">Zahlungsart</span><span class="l-en">Payment</span><span class="l-id">Pembayaran</span></th>
+          <th>Total</th>
+          <th></th>
+        </tr></thead>
+        <tbody id="r-tbody"></tbody></table>
+      </div>
+      <!-- ORDERS TABLE -->
+      <div class="table-wrap" style="margin-top:16px">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+          <div class="table-head" id="r-orders-label" style="flex:1">—</div>
+          <button class="ghost" id="btn-grouped" onclick="showOrdersGrouped()" style="font-size:12px;padding:4px 10px"><span class="l-de">Nach Tisch</span><span class="l-en">By table</span></button>
+          <button class="ghost" id="btn-individual" onclick="showOrdersIndividual()" style="font-size:12px;padding:4px 10px"><span class="l-de">Einzeln</span><span class="l-en">Individual</span></button>
+        </div>
+        <table><thead><tr>
+          <th><span class="l-de">Tisch</span><span class="l-en">Table</span></th>
+          <th><span class="l-de">Zeit</span><span class="l-en">Time</span></th>
+          <th>Status</th><th>Total</th>
+          <th><span class="l-de">Artikel</span><span class="l-en">Items</span></th>
+        </tr></thead>
+        <tbody id="r-orders-tbody"></tbody></table>
+      </div>
+      <!-- TIMING TABLE -->
+      <div class="table-wrap" style="margin-top:16px">
+        <div class="table-head">⏱ <span class="l-de">Fertigstellungszeiten</span><span class="l-en">Preparation Times</span></div>
+        <table><thead><tr>
+          <th>#</th>
+          <th><span class="l-de">Tisch</span></th>
+          <th><span class="l-de">Bestellt</span><span class="l-en">Ordered</span></th>
+          <th><span class="l-de">Küche</span><span class="l-en">Kitchen</span></th>
+          <th><span class="l-de">Bar</span></th>
+          <th><span class="l-de">Bezahlt</span><span class="l-en">Paid</span></th>
+          <th><span class="l-de">Gesamt</span><span class="l-en">Total</span></th>
+        </tr></thead>
+        <tbody id="r-timing-tbody"></tbody></table>
+      </div>
+    </div>
+    <!-- PERSONAL -->
+    <div class="panel" id="panel-personal">
+      <div class="table-wrap">
+        <div class="table-head">
+          <span><span class="l-de">Mitarbeiter</span><span class="l-en">Staff</span><span class="l-id">Staf</span></span>
+          <button class="form-btn" onclick="showAddStaff()">+</button>
+        </div>
+        <table><thead><tr>
+          <th><span class="l-de">Name</span></th>
+          <th>PIN</th>
+          <th><span class="l-de">Rolle</span><span class="l-en">Role</span><span class="l-id">Peran</span></th>
+          <th><span class="l-de">Sprache</span><span class="l-en">Language</span><span class="l-id">Bahasa</span></th>
+          <th></th>
+        </tr></thead>
+        <tbody id="staff-tbody"></tbody></table>
+      </div>
+      <div id="add-staff-form" style="display:none;background:#fff;border-radius:12px;border:1px solid var(--border);padding:16px;margin-bottom:16px">
+        <div id="staff-form-title" style="font-weight:700;margin-bottom:10px"><span class="l-de">Neuer Mitarbeiter</span><span class="l-en">New staff member</span></div>
+        <div class="form-grid">
+          <div class="form-group"><label><span class="l-de">Vorname</span><span class="l-en">First name</span></label><input id="sf-fname" placeholder="Julia"></div>
+          <div class="form-group"><label><span class="l-de">Nachname</span><span class="l-en">Last name</span></label><input id="sf-lname" placeholder="Müller"></div>
+          <div class="form-group"><label>PIN (4 <span class="l-de">Ziffern</span><span class="l-en">digits</span>)</label><input id="sf-pin" maxlength="4" placeholder="1234"></div>
+          <div class="form-group"><label><span class="l-de">Rolle</span><span class="l-en">Role</span></label><select id="sf-role"><option value="service">Service</option><option value="kitchen">Kitchen</option><option value="bar">Bar</option><option value="kasse">Kasse</option><option value="manager">Manager</option></select></div>
+          <div class="form-group"><label><span class="l-de">Sprache</span><span class="l-en">Language</span></label><select id="sf-lang"><option value="de">Deutsch</option><option value="en">English</option><option value="id">Bahasa Indonesia</option></select></div>
+        </div>
+        <button class="form-btn" onclick="saveStaff()"><span class="l-de">Speichern</span><span class="l-en">Save</span></button>
+        <button class="form-btn" style="background:var(--bg);color:var(--text2);border:1.5px solid var(--border);margin-left:8px" onclick="editingStaffId=null;document.getElementById('add-staff-form').style.display='none'"><span class="l-de">Abbrechen</span><span class="l-en">Cancel</span></button>
+      </div>
+    </div>
+    <!-- ANMELDUNGEN -->
+    <div class="panel" id="panel-anmeldungen">
+      <div class="panel-title"><span class="l-de">Anmeldungen</span><span class="l-en">Logins</span><span class="l-id">Login</span></div>
+      <div style="margin-bottom:14px;display:flex;gap:8px;align-items:center">
+        <label style="font-size:12px;color:var(--text2)"><span class="l-de">Datum</span><span class="l-en">Date</span></label>
+        <input type="date" id="login-log-date" onchange="loadLoginLog()" style="padding:7px 10px;border:1.5px solid var(--border);border-radius:8px;font-family:var(--font)">
+      </div>
+      <div style="background:#fff;border-radius:12px;border:1px solid var(--border);overflow:hidden">
+        <table><thead><tr>
+          <th><span class="l-de">Zeit</span><span class="l-en">Time</span></th>
+          <th><span class="l-de">Mitarbeiter</span><span class="l-en">Staff</span></th>
+          <th><span class="l-de">Terminal</span></th>
+          <th><span class="l-de">Aktion</span><span class="l-en">Action</span></th>
+        </tr></thead>
+        <tbody id="login-log-tbody"></tbody></table>
+      </div>
+    </div>
+    <!-- SPEISEKARTE -->
+    <div class="panel" id="panel-speisekarte">
+      <div style="background:var(--bg2);border-radius:10px;padding:14px;margin-bottom:14px;border:1px solid var(--border)">
+        <div style="font-size:13px;font-weight:700;margin-bottom:10px;color:var(--text2)">+ <span class="l-de">Neues Gericht</span><span class="l-en">New Item</span></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">
+          <div>
+            <div style="font-size:11px;color:var(--text3);margin-bottom:3px"><span class="l-de">Name</span></div>
+            <input id="mi-name" placeholder="Name" style="padding:6px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:inherit;width:150px">
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--text3);margin-bottom:3px"><span class="l-de">Kategorie</span></div>
+            <select id="mi-cat" style="padding:6px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:inherit">
+              <option value="Tapas">Tapas</option>
+              <option value="Fleisch">Fleisch &amp; Fisch</option>
+              <option value="Brot">Brot</option>
+              <option value="Dessert">Dessert</option>
+              <option value="Cocktails">Cocktails</option>
+              <option value="Softdrinks">Softdrinks</option>
+              <option value="Wein">Wein</option>
+              <option value="Sonstiges">Sonstiges</option>
+            </select>
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--text3);margin-bottom:3px">Preis (Rp k)</div>
+            <input id="mi-price" type="number" min="0" placeholder="45" style="padding:6px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:inherit;width:90px">
+          </div>
+          <button onclick="addMenuItem()" style="padding:7px 16px;border-radius:8px;font-size:13px;font-weight:700;border:none;background:var(--green);color:#fff;cursor:pointer;font-family:inherit">
+            <span class="l-de">Hinzufügen</span><span class="l-en">Add</span>
+          </button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <div class="table-head"><span class="l-de">Speisekarte</span><span class="l-en">Menu</span><span class="l-id">Menu</span></div>
+        <table><thead><tr>
+          <th><span class="l-de">Name</span></th>
+          <th><span class="l-de">Kategorie</span><span class="l-en">Category</span></th>
+          <th>Preis</th>
+          <th><span class="l-de">Verfügbar</span><span class="l-en">Available</span></th>
+          <th></th>
+        </tr></thead>
+        <tbody id="menu-tbody"></tbody></table>
+      </div>
+    </div>
+    <!-- TISCHPLAN -->
+    <div class="panel" id="panel-tischplan">
+      <div style="padding:20px 0">
+        <p style="margin-bottom:16px;color:var(--text2);font-size:14px"><span class="l-de">Tischplan direkt hier öffnen oder in neuem Tab.</span><span class="l-en">Open floor plan here or in new tab.</span><span class="l-id">Buka denah meja di sini atau tab baru.</span></p>
+        <a href="tischplan.html" target="_blank" style="display:inline-block;padding:12px 24px;background:var(--accent);color:#fff;border-radius:10px;font-weight:700;font-size:14px;text-decoration:none;margin-bottom:16px">🗺️ <span class="l-de">Tischplan öffnen</span><span class="l-en">Open Floor Plan</span><span class="l-id">Buka Denah</span></a>
+        <div style="margin-top:16px;border-radius:12px;overflow:hidden;border:1px solid var(--border)">
+          <iframe src="tischplan.html" style="width:100%;height:500px;border:none"></iframe>
+        </div>
+      </div>
+    </div>
+    <!-- BESTELLUNGEN -->
+    <div class="panel" id="panel-bestellungen">
+      <div class="date-row">
+        <input type="date" id="ord-date">
+        <button onclick="loadOrders()"><span class="l-de">Anzeigen</span><span class="l-en">Show</span><span class="l-id">Tampilkan</span></button>
+        <button class="ghost" onclick="loadOrdersToday()"><span class="l-de">Heute</span><span class="l-en">Today</span><span class="l-id">Hari ini</span></button>
+      </div>
+      <div class="table-wrap">
+        <div class="table-head" id="ord-label">—</div>
+        <table><thead><tr>
+          <th>#</th>
+          <th><span class="l-de">Tisch</span><span class="l-en">Table</span><span class="l-id">Meja</span></th>
+          <th><span class="l-de">Zeit</span><span class="l-en">Time</span><span class="l-id">Waktu</span></th>
+          <th>Status</th>
+          <th>Total</th>
+          <th><span class="l-de">Artikel</span><span class="l-en">Items</span><span class="l-id">Item</span></th>
+          <th></th>
+        </tr></thead>
+        <tbody id="ord-tbody"></tbody></table>
+      </div>
+      <div class="table-head" style="margin-top:18px">🏨 <span class="l-de">Hotelrechnungen</span><span class="l-en">Hotel invoices</span><span class="l-id">Faktur hotel</span></div>
+      <div class="table-wrap">
+        <table><thead><tr>
+          <th>#</th>
+          <th><span class="l-de">Zimmer</span><span class="l-en">Room</span><span class="l-id">Kamar</span></th>
+          <th><span class="l-de">Gast</span><span class="l-en">Guest</span></th>
+          <th><span class="l-de">Zeitraum</span><span class="l-en">Stay</span></th>
+          <th>Status</th>
+          <th>Total</th>
+          <th></th>
+        </tr></thead>
+        <tbody id="hotel-inv-tbody"></tbody></table>
+      </div>
+    </div>
+    <!-- BAR REZEPTE -->
+    <div class="panel" id="panel-barrezepte">
+      <div style="border-radius:12px;overflow:hidden;border:1px solid var(--border)">
+        <iframe src="bar_rezepturen.html" style="width:100%;height:600px;border:none"></iframe>
+      </div>
+    </div>
+    <!-- REZEPTE -->
+    <div class="panel" id="panel-rezepte">
+      <div style="border-radius:12px;overflow:hidden;border:1px solid var(--border)">
+        <iframe src="rezeptbuch.html" style="width:100%;height:600px;border:none" id="rezepte-iframe"></iframe>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="notif" id="notif"></div>
+
+<script>
+
+var SB='https://pxzdkyvndosikdmstnpp.supabase.co',KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB4emRreXZuZG9zaWtkbXN0bnBwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1NTIyNzQsImV4cCI6MjA5NTEyODI3NH0.QX1Iki-lguTfVsmyYWA9yPRtC8Qln-lMhSbCdMSdlYw';
+async function sbGet(table,q){var r=await fetch(SB+'/rest/v1/'+table+'?'+(q||''),{headers:{'apikey':KEY,'Authorization':'Bearer '+KEY}});if(!r.ok)throw new Error(r.status);return r.json();}
+async function sbPost(table,d){var r=await fetch(SB+'/rest/v1/'+table,{method:'POST',headers:{'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':'application/json','Prefer':'return=representation'},body:JSON.stringify(d)});if(!r.ok)throw new Error(r.status);return r.json();}
+async function sbPatch(table,filter,d){var r=await fetch(SB+'/rest/v1/'+table+'?'+filter,{method:'PATCH',headers:{'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':'application/json'},body:JSON.stringify(d)});if(!r.ok){var t='';try{t=await r.text();}catch(e){}throw new Error('DB-Fehler ('+r.status+'): '+t);}return r;}
+async function sbDel(table,filter){var r=await fetch(SB+'/rest/v1/'+table+'?'+filter,{method:'DELETE',headers:{'apikey':KEY,'Authorization':'Bearer '+KEY}});if(!r.ok){var t='';try{t=await r.text();}catch(e){}throw new Error('DB-Fehler ('+r.status+'): '+t);}return r;}
+
+
+var lang='de';
+function setLang(l){lang=l;document.body.className=l;document.querySelectorAll('.lb').forEach(function(b,i){b.classList.toggle('on',['de','en','id'][i]===l);}); if(typeof onLangChange==='function') onLangChange();}
+
+
+var staff=[];
+async function loadStaff(){
+  try{
+    var r=await fetch('https://pxzdkyvndosikdmstnpp.supabase.co/rest/v1/staff?active=eq.true&order=fname',{
+      headers:{'apikey':'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB4emRreXZuZG9zaWtkbXN0bnBwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1NTIyNzQsImV4cCI6MjA5NTEyODI3NH0.QX1Iki-lguTfVsmyYWA9yPRtC8Qln-lMhSbCdMSdlYw','Authorization':'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB4emRreXZuZG9zaWtkbXN0bnBwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1NTIyNzQsImV4cCI6MjA5NTEyODI3NH0.QX1Iki-lguTfVsmyYWA9yPRtC8Qln-lMhSbCdMSdlYw'}
+    });
+    if(!r.ok) throw new Error(r.status);
+    staff=await r.json();
+    buildSelect();autoLoginFromQuery();
+  }catch(e){console.warn('Staff load failed:',e);buildSelect();}
+}
+var LOGO='data:image/jpeg;base64,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';
+document.querySelectorAll('.login-logo').forEach(function(el){el.src=LOGO;});
+document.querySelectorAll('.topbar-logo').forEach(function(el){el.src=LOGO;});
+
+function buildSelect(){
+  var sel=document.getElementById('login-role');
+  if(!sel)return;
+  sel.innerHTML='<option value="">— Mitarbeiter —</option>';
+  staff.filter(function(s){return s.active;}).forEach(function(s){
+    var o=document.createElement('option');o.value=s.id;
+    o.textContent=s.fname+' '+(s.lname||'');sel.appendChild(o);
+  });
+}
+
+// PIN auto-advance
+function initPins(){
+  var pins=document.querySelectorAll('.pin');
+  pins.forEach(function(el,i){
+    el.setAttribute('readonly','');
+    el.addEventListener('focus',function(){this.removeAttribute('readonly');this.value='';});
+    el.addEventListener('input',function(){
+      if(this.value&&i<pins.length-1) pins[i+1].focus();
+      else if(i===pins.length-1){
+        var all=Array.from(pins);
+        if(all.every(function(p){return p.value;})) doLogin();
+      }
+    });
+    el.addEventListener('keydown',function(e){if(e.key==='Backspace'&&!this.value&&i>0)pins[i-1].focus();});
+  });
+}
+
+function clearPins(){document.querySelectorAll('.pin').forEach(function(el){el.value='';el.setAttribute('readonly','');});}
+
+function autoLoginFromQuery(){
+  try{
+    var params=new URLSearchParams(location.search);
+    var sid=params.get('autostaff');
+    var pin=params.get('autopin');
+    if(!sid||!pin)return;
+    var sel=document.getElementById('login-role');
+    if(sel) sel.value=sid;
+    var pins=document.querySelectorAll('.pin');
+    for(var i=0;i<pins.length;i++){pins[i].removeAttribute('readonly');pins[i].value=pin[i]||'';}
+    doLogin();
+  }catch(e){console.warn('Auto-Login fehlgeschlagen:',e);}
+}
+function doLogin(){
+  var sid=parseInt(document.getElementById('login-role').value);
+  var pin=Array.from(document.querySelectorAll('.pin')).map(function(p){return p.value;}).join('');
+  var m=staff.find(function(s){return s.id===sid;});
+  if(!m){document.getElementById('login-err').textContent='Bitte Mitarbeiter wählen';return;}
+  if(m.pin!==pin){document.getElementById('login-err').textContent='Falscher PIN';clearPins();document.querySelectorAll('.pin')[0].focus();return;}
+  document.getElementById('login').classList.add('hidden');
+  var un=document.getElementById('topbar-user');if(un)un.textContent=m.fname;
+  if(typeof afterLogin==='function')afterLogin(m);
+}
+
+function doLogout(){
+  document.getElementById('login').classList.remove('hidden');
+  clearPins();
+  document.getElementById('login-err').textContent='';
+  if(typeof afterLogout==='function')afterLogout();
+}
+
+
+function notify(msg,dur){var el=document.getElementById('notif');if(!el)return;el.textContent=msg;el.classList.add('show');setTimeout(function(){el.classList.remove('show');},dur||2500);}
+
+
+var allStaff=[],allMenu=[],timer=null;
+function tw(){return lang==='de'?'Tisch ':lang==='en'?'Table ':'Meja ';}
+function onLangChange(){document.body.className=lang;}
+
+function showPanel(id,el){
+  document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('on');});
+  document.querySelectorAll('.nav-item').forEach(function(n){n.classList.remove('on');});
+  document.getElementById('panel-'+id).classList.add('on');
+  if(el) el.classList.add('on');
+  if(id==='dashboard') loadDashboard();
+  else if(id==='berichte') loadReports('today');
+  else if(id==='personal') loadStaffTable();
+  else if(id==='anmeldungen') loadLoginLog();
+  else if(id==='bestellungen') loadOrdersToday();
+  else if(id==='tischplan'){}
+  else if(id==='barrezepte'){}
+  else if(id==='bestellungen') loadOrdersToday();
+  else if(id==='tischplan'){}
+  else if(id==='barrezepte'){}
+  else if(id==='speisekarte') loadMenuAdmin();
+}
+
+// DASHBOARD
+async function loadDashboard(){
+  try{
+    var today=new Date().toISOString().slice(0,10);
+    var [orders,sales]=await Promise.all([
+      sbGet('orders','select=id,table_number,status,kitchen_status,total_k,created_at,order_items(name)&status=in.(new,cooking,making,ready,served)&order=created_at.asc'),
+      sbGet('sales','select=total_k&created_at=gte.'+today+'T00:00:00&created_at=lte.'+today+'T23:59:59')
+    ]);
+    var revenue=sales.reduce(function(s,x){return s+(x.total_k||0);},0);
+    var tables=new Set(orders.map(function(o){return o.table_number;})).size;
+    document.getElementById('d-revenue').textContent='Rp '+revenue+'k';
+    document.getElementById('d-orders').textContent=orders.length;
+    document.getElementById('d-tables').textContent=tables+'/15';
+    var tbody=document.getElementById('dash-orders');
+    if(!orders.length){tbody.innerHTML='<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--text3)"><span class="l-de">Keine aktiven Bestellungen</span><span class="l-en">No active orders</span><span class="l-id">Tidak ada pesanan aktif</span></td></tr>';document.body.className=lang;return;}
+    tbody.innerHTML=orders.map(function(o){
+      var mins=Math.round((Date.now()-new Date(o.created_at).getTime())/60000);
+      var items=(o.order_items||[]).map(function(i){return i.name;}).slice(0,3).join(', ')+(o.order_items&&o.order_items.length>3?'…':'');
+      return '<tr><td><b>'+tw()+o.table_number+'</b></td>'+
+        '<td><span class="badge '+o.status+'">'+o.status+'</span></td>'+
+        '<td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+items+'</td>'+
+        '<td>Rp '+o.total_k+'k</td>'+
+        '<td>'+mins+' min</td></tr>';
+    }).join('');
+    document.body.className=lang;
+    // Overdue kitchen orders (>20 min, kitchen_status not served)
+    var overdue=orders.filter(function(o){
+      var mins=Math.round((Date.now()-new Date(o.created_at).getTime())/60000);
+      return mins>20 && o.kitchen_status!=='served';
+    });
+    var odbody=document.getElementById('dash-overdue');
+    if(odbody){
+      odbody.innerHTML=overdue.length
+        ?overdue.map(function(o){
+          var mins=Math.round((Date.now()-new Date(o.created_at).getTime())/60000);
+          var items=(o.order_items||[]).map(function(i){return i.name;}).join(', ');
+          return '<tr style="background:#fff5f5"><td><b>'+tw()+o.table_number+'</b></td>'+
+            '<td style="font-size:12px;color:#555">'+items+'</td>'+
+            '<td><b style="color:#e74c3c">'+mins+' min ⚠</b></td></tr>';
+        }).join('')
+        :'<tr><td colspan="3" style="text-align:center;padding:12px;color:#2d7a4f"><span class="l-de">✓ Keine überfälligen Bestellungen</span><span class="l-en">✓ No overdue orders</span></td></tr>';
+    }
+    document.body.className=lang;
+  }catch(e){notify('⚠ '+e.message);}
+}
+
+// BERICHTE
+async function loadReports(preset){
+  var from=document.getElementById('rpt-from');
+  var to=document.getElementById('rpt-to');
+  var today=new Date().toISOString().slice(0,10);
+  if(preset==='today'){from.value=today;to.value=today;}
+  else if(preset==='week'){var d=new Date();d.setDate(d.getDate()-6);from.value=d.toISOString().slice(0,10);to.value=today;}
+  var f=from.value||today,t=to.value||today;
+  try{
+    var sales=await sbGet('sales','select=*&created_at=gte.'+f+'T00:00:00&created_at=lte.'+t+'T23:59:59&order=created_at.desc');
+    var total=sales.reduce(function(s,x){return s+(x.total_k||0);},0);
+    var cash=sales.filter(function(x){return x.payment_method==='cash';}).reduce(function(s,x){return s+(x.total_k||0);},0);
+    var card=total-cash;
+    document.getElementById('r-total').textContent='Rp '+total+'k';
+    document.getElementById('r-count').textContent=sales.length;
+    document.getElementById('r-cash').textContent='Rp '+cash+'k';
+    document.getElementById('r-card').textContent='Rp '+card+'k';
+    var avg=sales.length?Math.round(total/sales.length):0;
+    document.getElementById('r-avg').textContent='Rp '+avg+'k';
+    document.getElementById('r-label').textContent=sales.length+(lang==='de'?' Einträge':lang==='en'?' entries':' entri');
+    var pm={cash:'💵 Bar',card:'💳 Karte',qr:'📱 QRIS'};
+    document.getElementById('r-tbody').innerHTML=sales.length?sales.map(function(s){
+      var t2=new Date(s.created_at).toLocaleString('de-DE',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+      return '<tr><td>#'+s.id+'</td><td>'+tw()+s.table_number+'</td><td>'+t2+'</td>'+
+        '<td>'+(pm[s.payment_method]||s.payment_method)+'</td>'+
+        '<td><b>Rp '+s.total_k+'k</b></td>'+
+        '<td><button class="storno-btn" onclick="storno('+s.id+','+s.order_id+')">✕ <span class="l-de">Storno</span><span class="l-en">Cancel</span></button></td></tr>';
+    }).join(''):'<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--text3)"><span class="l-de">Keine Einträge</span><span class="l-en">No entries</span></td></tr>';
+    document.body.className=lang;
+  // Load orders for same period
+    var ordFrom=document.getElementById('rpt-from').value||new Date().toISOString().slice(0,10);
+    var ordTo=document.getElementById('rpt-to').value||ordFrom;
+    var ords=await sbGet('orders?select=id,table_number,status,total_k,created_at,kitchen_served_at,bar_served_at,paid_at,order_items(name,quantity)&created_at=gte.'+ordFrom+'T00:00:00&created_at=lte.'+ordTo+'T23:59:59&order=created_at.desc');
+    document.getElementById('r-orders-label').textContent=ords.length+(lang==='de'?' Bestellungen':' orders');
+    window._mgr_orders=ords;
+    showOrdersGrouped();
+    showTimingTable(ords);
+    // Avg prep time
+    var paidT=ords.filter(function(o){return o.paid_at&&o.created_at;});
+    var el=document.getElementById('r-avgtime');
+    if(el){el.textContent=paidT.length?Math.round(paidT.reduce(function(s,o){return s+(new Date(o.paid_at)-new Date(o.created_at));},0)/paidT.length/60000)+' min':'—';}
+  }catch(e){notify('⚠ '+e.message);}
+}
+
+function _ordRow(table,time,status,total,items){
+  var sc=status==='paid'?'#2d7a4f':status==='served'?'#1a7fa8':'#e67e22';
+  return '<tr><td>'+tw()+table+'</td><td>'+time+'</td><td style="color:'+sc+'">'+status+'</td><td><b>Rp '+total+'k</b></td><td style="font-size:11px;color:#aaa">'+items+'</td></tr>';
+}
+function showTimingTable(ords){
+  function mins(a,b){
+    if(!a||!b) return '—';
+    var diff=Math.round((new Date(b)-new Date(a))/60000);
+    return diff+'min';
+  }
+  function t(ts){return ts?new Date(ts).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'}):'—';}
+  document.getElementById('r-timing-tbody').innerHTML=ords.length
+    ?ords.map(function(o){
+      var total=o.paid_at?mins(o.created_at,o.paid_at):'—';
+      return '<tr><td>#'+o.id+'</td><td>'+tw()+o.table_number+'</td>'+
+        '<td>'+t(o.created_at)+'</td>'+
+        '<td>'+t(o.kitchen_served_at)+'</td>'+
+        '<td>'+t(o.bar_served_at)+'</td>'+
+        '<td>'+t(o.paid_at)+'</td>'+
+        '<td><b>'+total+'</b></td></tr>';
+    }).join('')
+    :'<tr><td colspan="7" style="text-align:center;padding:16px;color:#aaa">—</td></tr>';
+}
+
+function showOrdersGrouped(){
+  document.getElementById('btn-grouped').style.fontWeight='700';
+  document.getElementById('btn-individual').style.fontWeight='normal';
+  var ords=window._mgr_orders||[];
+  var grp={};
+  ords.forEach(function(o){
+    var k=o.table_number;
+    if(!grp[k]) grp[k]={t:k,total:0,time:o.created_at,status:o.status,items:[]};
+    grp[k].total+=(o.total_k||0);
+    grp[k].items=grp[k].items.concat((o.order_items||[]).map(function(i){return i.quantity+'×'+i.name;}));
+  });
+  var rows=Object.values(grp).sort(function(a,b){return b.time.localeCompare(a.time);});
+  document.getElementById('r-orders-tbody').innerHTML=rows.length
+    ?rows.map(function(g){return _ordRow(g.t,new Date(g.time).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'}),g.status,g.total,g.items.join(', ').slice(0,80));}).join('')
+    :'<tr><td colspan="5" style="text-align:center;padding:16px;color:#aaa">—</td></tr>';
+  document.body.className=lang;
+}
+function showOrdersIndividual(){
+  document.getElementById('btn-individual').style.fontWeight='700';
+  document.getElementById('btn-grouped').style.fontWeight='normal';
+  var ords=window._mgr_orders||[];
+  document.getElementById('r-orders-tbody').innerHTML=ords.length
+    ?ords.map(function(o){
+      var items=(o.order_items||[]).map(function(i){return i.quantity+'×'+i.name;}).join(', ');
+      return _ordRow(o.table_number,new Date(o.created_at).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'}),o.status,(o.total_k||0),items.slice(0,80));
+    }).join('')
+    :'<tr><td colspan="5" style="text-align:center;padding:16px;color:#aaa">—</td></tr>';
+  document.body.className=lang;
+}
+
+async function storno(sid,oid){
+  if(!confirm(lang==='de'?'Wirklich stornieren?':'Really cancel?')) return;
+  try{
+    await sbDel('sales','id=eq.'+sid);
+    if(oid) await sbPatch('orders','id=eq.'+oid,{status:'ready',payment_method:null});
+    notify('✓ '+(lang==='de'?'Storniert':'Cancelled'));
+    loadReports();
+  }catch(e){notify('⚠ '+e.message);}
+}
+
+// PERSONAL
+async function loadLoginLog(){
+  var dateEl=document.getElementById('login-log-date');
+  if(!dateEl.value)dateEl.value=new Date().toISOString().slice(0,10);
+  var date=dateEl.value;
+  try{
+    var rows=await sbGet('audit_log','action=in.(Angemeldet,Abgemeldet)&created_at=gte.'+date+'T00:00:00%2B08:00&created_at=lte.'+date+'T23:59:59%2B08:00&order=created_at.desc');
+    var tbody=document.getElementById('login-log-tbody');
+    if(!rows.length){tbody.innerHTML='<tr><td colspan="4" style="text-align:center;color:var(--text3);padding:20px">'+(lang==='de'?'Keine Einträge':'No entries')+'</td></tr>';return;}
+    tbody.innerHTML=rows.map(function(r){
+      var t=new Date(r.created_at).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Makassar'});
+      var actionColor=r.action==='Angemeldet'?'var(--green)':'var(--red)';
+      return '<tr><td>'+t+'</td><td>'+(r.staff_name||'—')+'</td><td>'+(r.terminal||'—')+'</td>'+
+        '<td style="color:'+actionColor+';font-weight:600">'+r.action+'</td></tr>';
+    }).join('');
+  }catch(e){notify('⚠ '+e.message);}
+}
+
+async function loadStaffTable(){
+  try{
+    allStaff=await sbGet('staff','select=*&order=fname');
+    var langLabel={de:'DE',en:'EN',id:'ID'};
+    document.getElementById('staff-tbody').innerHTML=allStaff.map(function(s){
+      return '<tr><td>'+s.fname+' '+(s.lname||'')+'</td><td><code>'+s.pin+'</code></td>'+
+        '<td>'+s.role+'</td><td>'+(langLabel[s.preferred_lang]||'DE')+'</td>'+
+        '<td><button class="del-btn" style="background:var(--accent-bg);color:var(--accent);border-color:var(--accent);margin-right:6px" onclick="editStaff('+s.id+')">✎</button>'+
+        '<button class="del-btn" onclick="delStaff('+s.id+')">✕</button></td></tr>';
+    }).join('');
+  }catch(e){notify('⚠ '+e.message);}
+}
+
+function showAddStaff(){
+  editingStaffId=null;
+  document.getElementById('sf-fname').value='';
+  document.getElementById('sf-lname').value='';
+  document.getElementById('sf-pin').value='';
+  document.getElementById('sf-role').value='service';
+  document.getElementById('sf-lang').value='de';
+  document.getElementById('staff-form-title').textContent=lang==='de'?'Neuer Mitarbeiter':'New staff member';
+  document.getElementById('add-staff-form').style.display='block';
+}
+
+var editingStaffId=null;
+function editStaff(id){
+  var s=allStaff.find(function(x){return x.id===id;});
+  if(!s)return;
+  editingStaffId=id;
+  document.getElementById('sf-fname').value=s.fname||'';
+  document.getElementById('sf-lname').value=s.lname||'';
+  document.getElementById('sf-pin').value=s.pin||'';
+  document.getElementById('sf-role').value=s.role||'service';
+  document.getElementById('sf-lang').value=s.preferred_lang||'de';
+  document.getElementById('staff-form-title').textContent=lang==='de'?'Mitarbeiter bearbeiten':'Edit staff member';
+  document.getElementById('add-staff-form').style.display='block';
+  document.getElementById('add-staff-form').scrollIntoView({behavior:'smooth',block:'center'});
+}
+
+async function saveStaff(){
+  var fname=document.getElementById('sf-fname').value.trim();
+  var lname=document.getElementById('sf-lname').value.trim();
+  var pin=document.getElementById('sf-pin').value.trim();
+  var role=document.getElementById('sf-role').value;
+  var prefLang=document.getElementById('sf-lang').value;
+  if(!fname||!pin||pin.length!==4){notify('⚠ Vorname und 4-stellige PIN erforderlich');return;}
+  try{
+    if(editingStaffId){
+      await sbPatch('staff','id=eq.'+editingStaffId,{fname:fname,lname:lname,pin:pin,role:role,preferred_lang:prefLang});
+    }else{
+      await sbPost('staff',{fname:fname,lname:lname,pin:pin,role:role,preferred_lang:prefLang,active:true});
+    }
+    editingStaffId=null;
+    document.getElementById('add-staff-form').style.display='none';
+    notify('✓ '+(lang==='de'?'Gespeichert':'Saved'));
+    loadStaffTable();
+  }catch(e){notify('⚠ '+e.message);}
+}
+
+async function delStaff(id){
+  if(!confirm(lang==='de'?'Mitarbeiter löschen?':'Delete staff member?')) return;
+  try{await sbDel('staff','id=eq.'+id);loadStaffTable();notify('✓ Gelöscht');}catch(e){notify('⚠ '+e.message);}
+}
+
+// SPEISEKARTE
+async function loadMenuAdmin(){
+  try{
+    allMenu=await sbGet('menu_items','select=*&order=sort_order,name');
+    document.getElementById('menu-tbody').innerHTML=allMenu.map(function(m){
+      return '<tr><td>'+m.name+'</td><td>'+m.category+'</td><td>Rp '+m.price_k+'k</td>'+
+        '<td><button class="avail-toggle'+(m.available?' on':'')+'" onclick="toggleAvail('+m.id+','+m.available+')"></button></td>'+
+        '<td><button onclick="deleteMenuItem('+m.id+')" style="padding:3px 8px;border:1px solid #e74c3c;background:#ffeaea;color:#c0392b;border-radius:5px;font-size:11px;cursor:pointer;font-family:inherit">✕</button></td></tr>';
+    }).join('');
+  }catch(e){notify('⚠ '+e.message);}
+}
+
+async function addMenuItem(){
+  var name=document.getElementById('mi-name').value.trim();
+  var cat=document.getElementById('mi-cat').value;
+  var price=parseInt(document.getElementById('mi-price').value)||0;
+  if(!name){notify('⚠ Name eingeben');return;}
+  try{
+    await fetch(SB+'/rest/v1/menu_items',{method:'POST',
+      headers:{'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':'application/json'},
+      body:JSON.stringify({name:name,category:cat,price_k:price,available:true,sort_order:999})});
+    document.getElementById('mi-name').value='';
+    document.getElementById('mi-price').value='';
+    await loadMenuAdmin();
+    notify('✓ '+name+' hinzugefügt');
+  }catch(e){notify('⚠ '+e.message);}
+}
+
+async function deleteMenuItem(id){
+  var m=allMenu.find(function(x){return x.id===id;});
+  if(!m||!confirm((m?m.name:'Gericht')+' entfernen?')) return;
+  try{
+    await fetch(SB+'/rest/v1/menu_items?id=eq.'+id,{method:'DELETE',
+      headers:{'apikey':KEY,'Authorization':'Bearer '+KEY}});
+    await loadMenuAdmin();
+    notify('✓ Entfernt');
+  }catch(e){notify('⚠ '+e.message);}
+}
+
+async function toggleAvail(id,cur){
+  try{await sbPatch('menu_items','id=eq.'+id,{available:!cur});loadMenuAdmin();}catch(e){notify('⚠ '+e.message);}
+}
+
+async function loadOrdersToday(){
+  var today=new Date().toISOString().slice(0,10);
+  document.getElementById('ord-date').value=today;
+  loadOrders();
+}
+
+async function deleteOrderRecord(orderId){
+  var msg1=lang==='de'?'Rechnung #'+orderId+' wirklich dauerhaft löschen? Das entfernt auch den zugehörigen Umsatzeintrag aus dem Tagesabschluss.':'Really permanently delete invoice #'+orderId+'? This also removes the matching sales record from the daily closing.';
+  if(!confirm(msg1))return;
+  var msg2=lang==='de'?'Bist du sicher? Das kann NICHT rückgängig gemacht werden.':'Are you sure? This CANNOT be undone.';
+  if(!confirm(msg2))return;
+  try{
+    var sales=await sbGet('sales','order_id=eq.'+orderId+'&select=id,total_k');
+    for(var i=0;i<sales.length;i++){await sbDel('sales','id=eq.'+sales[i].id);}
+    await sbDel('order_items','order_id=eq.'+orderId);
+    await sbDel('orders','id=eq.'+orderId);
+    logAction('Rechnung gelöscht','#'+orderId+(sales.length?' · Rp '+sales.reduce(function(s,x){return s+(x.total_k||0);},0)+'k Umsatz entfernt':''));
+    notify('✓ '+(lang==='de'?'Rechnung gelöscht':'Invoice deleted'));
+    loadOrders();
+  }catch(e){notify('⚠ Fehler: '+e.message);}
+}
+
+async function loadOrders(){
+  var date=document.getElementById('ord-date').value||new Date().toISOString().slice(0,10);
+  try{
+    var orders=await sbGet('orders','select=id,table_number,room_id,order_type,status,kitchen_status,bar_status,total_k,created_at,order_items(name,quantity,price_k),rooms(name)&created_at=gte.'+date+'T00:00:00&created_at=lte.'+date+'T23:59:59&order=created_at.desc');
+    document.getElementById('ord-label').textContent=orders.length+(lang==='de'?' Bestellungen':lang==='en'?' orders':' pesanan');
+    var statusLabel=function(o){
+      if(o.status==='paid') return '<span style="color:#2d7a4f">✓ Bezahlt</span>';
+      if(o.status==='served') return '<span style="color:#1a7fa8">Serviert</span>';
+      return '<span style="color:#e67e22">'+o.status+'</span>';
+    };
+    document.getElementById('ord-tbody').innerHTML=orders.length?orders.map(function(o){
+      var time=new Date(o.created_at).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
+      var items=(o.order_items||[]).map(function(i){return i.quantity+'× '+i.name;}).join(', ');
+      var loc=o.table_number?(tw()+o.table_number):(o.room_id?('🏨 '+(o.rooms?o.rooms.name:'?')):'—');
+      return '<tr><td>#'+o.id+'</td><td>'+loc+'</td><td>'+time+'</td>'+
+        '<td>'+statusLabel(o)+'</td>'+
+        '<td><b>Rp '+(o.total_k||0)+'k</b></td>'+
+        '<td style="font-size:11px;color:var(--text2)">'+items+'</td>'+
+        '<td><button class="del-btn" onclick="deleteOrderRecord('+o.id+')" title="Rechnung dauerhaft löschen">🗑</button></td></tr>';
+    }).join(''):'<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--text3)"><span class="l-de">Keine Bestellungen</span><span class="l-en">No orders</span></td></tr>';
+    document.body.className=lang;
+  }catch(e){notify('⚠ '+e.message);}
+  loadHotelInvoices();
+}
+
+async function loadHotelInvoices(){
+  var date=document.getElementById('ord-date').value||new Date().toISOString().slice(0,10);
+  try{
+    var rows=await sbGet('hotel_charges','select=*,rooms(name)&created_at=gte.'+date+'T00:00:00&created_at=lte.'+date+'T23:59:59&order=created_at.desc');
+    var tbody=document.getElementById('hotel-inv-tbody');
+    if(!rows.length){tbody.innerHTML='<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--text3)"><span class="l-de">Keine Hotelrechnungen</span><span class="l-en">No hotel invoices</span></td></tr>';return;}
+    var statusLabel=function(h){
+      return h.status==='paid'?'<span style="color:#2d7a4f">✓ '+(lang==='de'?'Bezahlt':'Paid')+'</span>':'<span style="color:#e67e22">'+(lang==='de'?'Offen':'Open')+'</span>';
+    };
+    tbody.innerHTML=rows.map(function(h){
+      var room=h.rooms?h.rooms.name:'—';
+      var period=(h.checkin_date&&h.checkout_date)?(h.checkin_date+' → '+h.checkout_date):'—';
+      return '<tr><td>#'+h.id+'</td><td>'+room+'</td><td>'+(h.guest_name||'—')+'</td><td style="font-size:11px">'+period+'</td>'+
+        '<td>'+statusLabel(h)+'</td><td><b>Rp '+h.amount_k+'k</b></td>'+
+        '<td><button class="del-btn" onclick="deleteHotelInvoice('+h.id+')" title="Hotelrechnung dauerhaft löschen">🗑</button></td></tr>';
+    }).join('');
+  }catch(e){notify('⚠ '+e.message);}
+}
+
+async function deleteHotelInvoice(id){
+  var msg1=lang==='de'?'Hotelrechnung #'+id+' wirklich dauerhaft löschen? Das entfernt auch den zugehörigen Umsatzeintrag, falls schon bezahlt.':'Really permanently delete hotel invoice #'+id+'? This also removes the matching sales record if already paid.';
+  if(!confirm(msg1))return;
+  var msg2=lang==='de'?'Bist du sicher? Das kann NICHT rückgängig gemacht werden.':'Are you sure? This CANNOT be undone.';
+  if(!confirm(msg2))return;
+  try{
+    var sales=await sbGet('sales','hotel_charge_id=eq.'+id+'&select=id,total_k');
+    for(var i=0;i<sales.length;i++){await sbDel('sales','id=eq.'+sales[i].id);}
+    await sbDel('hotel_charges','id=eq.'+id);
+    logAction('Hotelrechnung gelöscht','#'+id+(sales.length?' · Rp '+sales.reduce(function(s,x){return s+(x.total_k||0);},0)+'k Umsatz entfernt':''));
+    notify('✓ '+(lang==='de'?'Hotelrechnung gelöscht':'Hotel invoice deleted'));
+    loadHotelInvoices();
+  }catch(e){notify('⚠ Fehler: '+e.message);}
+}
+
+var currentStaff=null;
+function logAction(action,details){
+  sbPost('audit_log',{staff_name:currentStaff?currentStaff.fname:null,staff_role:currentStaff?currentStaff.role:null,terminal:'Manager',action:action,details:details||null}).catch(function(){});
+}
+function afterLogin(m){
+  currentStaff=m;
+  logAction('Angemeldet','Manager');
+  loadDashboard();
+  timer=setInterval(loadDashboard,15000);
+}
+function afterLogout(){logAction('Abgemeldet','Manager');if(timer)clearInterval(timer);}
+
+window.addEventListener('DOMContentLoaded',function(){
+  loadStaff();initPins();
+  for(var _i=0;_i<8;_i++){history.pushState(null,'',location.href);}
+  window.addEventListener('popstate',function(){history.pushState(null,'',location.href);});
+});
+</script>
+</body>
+</html>

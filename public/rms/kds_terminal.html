@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<!-- Mata Villas v2026-08-24 20:15 -->
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Küchen-Display — Mata Villas</title>
+<link rel="manifest" href="icons/manifest_kitchen.json">
+<link rel="apple-touch-icon" href="icons/kitchen_icon_180.png">
+<link rel="icon" href="icons/kitchen_icon_192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Kitchen">
+<meta name="theme-color" content="#EB6E28">
+<style>
+
+:root{
+  --bg:#f0f4f8;--bg2:#fff;--border:#e2e8f0;
+  --text:#1a202c;--text2:#4a5568;--text3:#a0aec0;
+  --accent:#3182ce;--accent-bg:#ebf8ff;
+  --green:#276749;--green-bg:#f0fff4;--green-bd:#9ae6b4;
+  --orange:#c05621;--orange-bg:#fffaf0;--orange-bd:#fbd38d;
+  --red:#c53030;--red-bg:#fff5f5;--red-bd:#fed7d7;
+  --yellow:#b7791f;--yellow-bg:#fffff0;--yellow-bd:#fefcbf;
+  --font:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font);background:var(--bg);color:var(--text)}
+
+body{height:100vh;height:100dvh;display:flex;flex-direction:column;overflow:hidden}
+
+.login{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;z-index:100}
+.login.hidden{display:none}
+.lcard{background:#fff;border-radius:16px;padding:32px 28px;width:320px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.2)}
+.lcard img{height:56px;object-fit:contain;margin-bottom:12px}
+.lcard h2{font-size:17px;font-weight:700;margin-bottom:16px}
+.lcard select{width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;font-size:14px;margin-bottom:14px;font-family:var(--font);background:#fff;outline:none}
+.pins{display:flex;gap:8px;justify-content:center;margin-bottom:14px}
+.pin{width:48px;height:52px;border:2px solid var(--border);border-radius:10px;font-size:22px;text-align:center;font-family:var(--font);background:#fff;outline:none}
+.pin:focus{border-color:var(--accent)}
+.lbtn{width:100%;padding:12px;border-radius:10px;background:var(--accent);color:#fff;border:none;font-size:15px;font-weight:600;cursor:pointer;font-family:var(--font)}
+.lerr{color:var(--red);font-size:12px;margin-top:8px;min-height:16px}
+
+.topbar{background:#fff;border-bottom:1px solid var(--border);padding:10px 16px;display:flex;align-items:center;gap:10px;flex-shrink:0}
+.topbar img{height:32px;object-fit:contain}
+.topbar-title{font-size:15px;font-weight:700;flex:1}
+.topbar-right{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.lb{padding:4px 9px;border-radius:6px;font-size:11px;font-weight:700;border:1.5px solid var(--border);background:var(--bg);color:var(--text2);cursor:pointer;font-family:var(--font)}
+.lb.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+.topbar-user{font-size:13px;color:var(--text2)}
+.logout-btn{padding:5px 9px;border-radius:6px;border:1.5px solid var(--border);background:var(--bg);cursor:pointer;font-size:13px;font-family:var(--font)}
+
+.notif{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1a202c;color:#fff;border-radius:8px;padding:10px 20px;font-size:13px;z-index:200;opacity:0;pointer-events:none;transition:opacity .25s;white-space:nowrap}
+.notif.show{opacity:1}
+
+.fbar{background:#fff;border-bottom:1px solid var(--border);padding:7px 14px;display:flex;gap:7px;flex-shrink:0;overflow-x:auto;scrollbar-width:none;align-items:center}
+.fbar::-webkit-scrollbar{display:none}
+.fbtn{flex-shrink:0;padding:5px 12px;border-radius:16px;border:1.5px solid var(--border);background:var(--bg);font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font);color:var(--text2);display:flex;align-items:center;gap:5px}
+.fbtn.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+.fbadge{width:16px;height:16px;border-radius:50%;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.15);color:#fff}
+.fbtn:not(.on) .fbadge{background:var(--text3)}
+.live{width:7px;height:7px;border-radius:50%;background:#48bb78;animation:pulse 2s infinite;margin-left:auto;flex-shrink:0}
+.live.off{background:#fc8181}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.kds-main{flex:1;overflow-y:auto;padding:10px 12px;display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px;align-content:start}
+@media(max-width:500px){.kds-main{grid-template-columns:1fr;padding:8px;}}
+.ticket{background:#fff;border-radius:11px;border:2px solid var(--border);display:flex;flex-direction:column}
+.ticket.new{border-color:var(--red-bd)}
+.ticket.cooking{border-color:var(--orange-bd)}
+.ticket.ready{border-color:var(--green-bd)}
+.thead{padding:9px 12px;display:flex;align-items:center;gap:7px;border-bottom:1px solid var(--border);border-radius:9px 9px 0 0}
+.thead.new{background:var(--red-bg)}
+.thead.cooking{background:var(--orange-bg)}
+.thead.ready{background:var(--green-bg)}
+.ttable{font-size:14px;font-weight:800;flex:1}
+.ttime{font-size:11px;font-weight:700;padding:2px 6px;border-radius:8px}
+.ttime.urgent{background:var(--red);color:#fff}
+.ttime.warn{background:var(--yellow-bg);color:var(--yellow)}
+.ttime.ok{background:var(--green-bg);color:var(--green)}
+.tbody{padding:7px 11px;overflow-y:auto;max-height:250px}
+.titem{display:flex;align-items:center;gap:7px;padding:4px 0;border-bottom:1px solid var(--border);width:100%}
+.titem:last-child{border-bottom:none}
+.titem.done{opacity:.4}
+.iqty{width:24px;height:24px;border-radius:5px;background:var(--accent);color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.iname{flex:1;font-size:12px;font-weight:600}
+.icat{font-size:9px;color:var(--text3)}
+.icheck{width:20px;height:20px;border-radius:5px;border:2px solid var(--border);background:#fff;cursor:pointer;font-size:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.icheck.done{background:var(--accent);border-color:var(--accent);color:#fff}
+.tnote{padding:4px 11px;font-size:11px;color:var(--orange);background:var(--orange-bg);border-top:1px solid var(--orange-bd)}
+.tfoot{padding:7px 11px;border-top:1px solid var(--border);display:flex;gap:5px}
+.tbtn{flex:1;padding:7px;border-radius:7px;border:none;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font)}
+.tbtn.start{background:var(--orange-bg);color:var(--orange);border:1.5px solid var(--orange-bd)}
+.tbtn.ready{background:var(--green-bg);color:var(--green);border:1.5px solid var(--green-bd)}
+.tbtn.served{background:var(--bg);color:var(--text2);border:1.5px solid var(--border)}
+.empty{grid-column:1/-1;text-align:center;padding:50px;color:var(--text3);font-size:14px}
+</style>
+</head>
+<body class="de">
+
+<div class="login" id="login">
+  <div class="lcard">
+    <img class="login-logo" src="" alt="Mata Villas">
+    <h2>Küchen-Display</h2>
+    <select id="login-role"></select>
+    <div class="pins">
+      <input class="pin" type="tel" maxlength="1" inputmode="numeric" autocomplete="off" readonly>
+      <input class="pin" type="tel" maxlength="1" inputmode="numeric" autocomplete="off" readonly>
+      <input class="pin" type="tel" maxlength="1" inputmode="numeric" autocomplete="off" readonly>
+      <input class="pin" type="tel" maxlength="1" inputmode="numeric" autocomplete="off" readonly>
+    </div>
+    <button class="lbtn" id="login-btn" onclick="doLogin()"></button>
+    <div class="lerr" id="login-err"></div>
+  </div>
+</div>
+
+<div class="topbar">
+  <img class="topbar-logo" src="" alt="Mata Villas">
+  <span class="topbar-title">Küchen-Display</span>
+  <span style="font-size:8px;color:var(--text3);font-family:monospace">240824 2015</span>
+  <div class="topbar-right">
+    <button class="lb on" onclick="setLang('de')">DE</button>
+    <button class="lb" onclick="setLang('en')">EN</button>
+    <button class="lb" onclick="setLang('id')">ID</button>
+    <span class="live" id="live"></span>
+    <a href="rezeptbuch.html" target="_blank" class="logout-btn" title="Rezeptbuch" style="text-decoration:none;display:inline-flex;align-items:center;justify-content:center">📖</a>
+    <span class="topbar-user" id="topbar-user"></span>
+    <button class="logout-btn" onclick="doLogout()">⏻</button>
+  </div>
+</div>
+<div class="fbar">
+  <button class="fbtn on" data-f="all" onclick="setF('all',this)"><span id="fl-all"></span><span class="fbadge" id="n-all">0</span></button>
+  <button class="fbtn" data-f="new" onclick="setF('new',this)"><span id="fl-new"></span><span class="fbadge" id="n-new">0</span></button>
+  <button class="fbtn" data-f="cooking" onclick="setF('cooking',this)"><span id="fl-cooking"></span><span class="fbadge" id="n-cooking">0</span></button>
+  <button class="fbtn" data-f="ready" onclick="setF('ready',this)"><span id="fl-ready"></span><span class="fbadge" id="n-ready">0</span></button>
+  <span class="live" id="live"></span>
+</div>
+<div class="kds-main" id="kds-main"></div>
+<div class="notif" id="notif"></div>
+<script>
+
+var T={
+  de:{selectTable:'Tisch wählen',order:'Bestellung',empty:'Noch leer',note:'Notiz...',
+      total:'Total',clear:'Leeren',send:'Abschicken',sent:'Bestellung gesendet!',
+      free:'frei',busy:'belegt',allCats:'Alle',openOrder:'Offene Bestellung',
+      noOrders:'Keine Bestellungen',start:'Beginnen',ready:'Fertig',
+      served:'Abgeholt',cooking:'In Zubereitung',all:'Alle',new:'Neu',
+      history:'Bestellverlauf',table:'Tisch',time:'Zeit',status:'Status',
+      items:'Gerichte',signIn:'Anmelden',selectStaff:'Mitarbeiter wählen',
+      wrongPin:'Falscher PIN',pay:'Zahlung bestätigen',cash:'Bar',
+      card:'Karte',bills:'Offene Rechnungen',selectBill:'Rechnung wählen',
+      paid:'Bezahlt!',today:'Heute',week:'Diese Woche',reports:'Berichte',
+      staff:'Personal',menu:'Speisekarte',dashboard:'Dashboard',
+      activeOrders:'Aktive Bestellungen',revenue:'Umsatz heute',
+      orders:'Bestellungen',tables:'Tische belegt',noActive:'Keine aktiven Bestellungen',
+      save:'Speichern',cancel:'Abbrechen',delete:'Löschen',
+      available:'Verfügbar',role:'Rolle',pin:'PIN',
+      firstName:'Vorname',lastName:'Nachname',add:'Hinzufügen'},
+  en:{selectTable:'Select table',order:'Order',empty:'Empty',note:'Note...',
+      total:'Total',clear:'Clear',send:'Send',sent:'Order sent!',
+      free:'free',busy:'busy',allCats:'All',openOrder:'Open order',
+      noOrders:'No orders',start:'Start',ready:'Ready',
+      served:'Picked up',cooking:'Cooking',all:'All',new:'New',
+      history:'Order history',table:'Table',time:'Time',status:'Status',
+      items:'Items',signIn:'Sign in',selectStaff:'Select staff',
+      wrongPin:'Wrong PIN',pay:'Confirm payment',cash:'Cash',
+      card:'Card',bills:'Open bills',selectBill:'Select bill',
+      paid:'Paid!',today:'Today',week:'This week',reports:'Reports',
+      staff:'Staff',menu:'Menu',dashboard:'Dashboard',
+      activeOrders:'Active Orders',revenue:'Revenue today',
+      orders:'Orders',tables:'Tables busy',noActive:'No active orders',
+      save:'Save',cancel:'Cancel',delete:'Delete',
+      available:'Available',role:'Role',pin:'PIN',
+      firstName:'First name',lastName:'Last name',add:'Add'},
+  id:{selectTable:'Pilih meja',order:'Pesanan',empty:'Kosong',note:'Catatan...',
+      total:'Total',clear:'Hapus',send:'Kirim',sent:'Pesanan dikirim!',
+      free:'bebas',busy:'terisi',allCats:'Semua',openOrder:'Pesanan terbuka',
+      noOrders:'Tidak ada pesanan',start:'Mulai',ready:'Siap',
+      served:'Diambil',cooking:'Masak',all:'Semua',new:'Baru',
+      history:'Riwayat',table:'Meja',time:'Waktu',status:'Status',
+      items:'Item',signIn:'Masuk',selectStaff:'Pilih staf',
+      wrongPin:'PIN salah',pay:'Konfirmasi pembayaran',cash:'Tunai',
+      card:'Kartu',bills:'Tagihan terbuka',selectBill:'Pilih tagihan',
+      paid:'Dibayar!',today:'Hari ini',week:'Minggu ini',reports:'Laporan',
+      staff:'Staf',menu:'Menu',dashboard:'Dashboard',
+      activeOrders:'Pesanan Aktif',revenue:'Pendapatan hari ini',
+      orders:'Pesanan',tables:'Meja terisi',noActive:'Tidak ada pesanan aktif',
+      save:'Simpan',cancel:'Batal',delete:'Hapus',
+      available:'Tersedia',role:'Peran',pin:'PIN',
+      firstName:'Nama depan',lastName:'Nama belakang',add:'Tambah'}
+};
+function t(k){return(T[lang]&&T[lang][k])||(T.de&&T.de[k])||k;}
+function tw(){return t('table')+' ';}
+
+
+var SB='https://pxzdkyvndosikdmstnpp.supabase.co',KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB4emRreXZuZG9zaWtkbXN0bnBwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1NTIyNzQsImV4cCI6MjA5NTEyODI3NH0.QX1Iki-lguTfVsmyYWA9yPRtC8Qln-lMhSbCdMSdlYw';
+async function sbGet(table,q){var r=await fetch(SB+'/rest/v1/'+table+'?'+(q||''),{headers:{'apikey':KEY,'Authorization':'Bearer '+KEY}});if(!r.ok)throw new Error(r.status);return r.json();}
+async function sbPost(table,d){var r=await fetch(SB+'/rest/v1/'+table,{method:'POST',headers:{'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':'application/json','Prefer':'return=representation'},body:JSON.stringify(d)});if(!r.ok)throw new Error(await r.text());return r.json();}
+
+var currentStaff=null;
+function logAction(action,details){
+  sbPost('audit_log',{staff_name:currentStaff?currentStaff.fname:null,staff_role:currentStaff?currentStaff.role:null,terminal:'KDS',action:action,details:details||null}).catch(function(){});
+}
+async function sbPatch(table,filter,d){var r=await fetch(SB+'/rest/v1/'+table+'?'+filter,{method:'PATCH',headers:{'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':'application/json'},body:JSON.stringify(d)});if(!r.ok){var t='';try{t=await r.text();}catch(e){}throw new Error('DB-Fehler ('+r.status+'): '+t);}return r;}
+async function sbDel(table,filter){var r=await fetch(SB+'/rest/v1/'+table+'?'+filter,{method:'DELETE',headers:{'apikey':KEY,'Authorization':'Bearer '+KEY}});if(!r.ok){var t='';try{t=await r.text();}catch(e){}throw new Error('DB-Fehler ('+r.status+'): '+t);}return r;}
+
+
+var lang='de';
+function setLang(l){
+  lang=l;
+  document.body.className=l;
+  document.querySelectorAll('.lb').forEach(function(b,i){b.classList.toggle('on',['de','en','id'][i]===l);});
+  if(typeof onLangChange==='function') onLangChange();
+}
+
+
+var staff=[];
+async function loadStaff(){
+  try{
+    staff=await sbGet('staff','active=eq.true&order=fname');
+    buildSelect();autoLoginFromQuery();
+  }catch(e){console.warn('Staff load failed:',e);buildSelect();}
+}
+var LOGO='data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCABQAGMDASIAAhEBAxEB/8QAHAABAAIDAQEBAAAAAAAAAAAAAAMFAgQGAQcI/8QAOBAAAgEDAwEGAwUGBwAAAAAAAQIDAAQRBRIhMQYTQVFhcRSBkRUiMqGxB0JiosHRFjVyc5Ky8P/EABoBAAIDAQEAAAAAAAAAAAAAAAACAQMEBQb/xAAtEQABAwIDBQgDAQAAAAAAAAABAAIRAyEEEjETUWGh8CJBcYGRscHRBTLhFP/aAAwDAQACEQMRAD8A/P8ASlKEJSlert3jfnbnnHXFCFNZ2pu7lYe9ihB5aSVtqqPM1Zz6ZYC2MlpNdTgN3YmaMIkj+SDJY/8As4rdi1PspBCuNCuJZVHWW44Y+uP7V5NqkVxbnUp3hSVA0FjYQDCwjHLnyxn3J9q1tp0w25BPn/Fz3VqznghpA4xf0k+wA3qq0/T1uJwkyykt+FYiu5+M4GeCcEcePhXt/YWkcAubG9E0edrxSrsljPqviPUVb9zaj4W2uZzbJd20M9vc+EUqrs59Djk+HBr1df0m6Y/bmjJPdKcNcW77DIR4sBgE+tApMjKSAet30oNeoXZmgkbhHz8GQd4K5Wlb2qy6bNch9MtpreIjlJXD4Poa0ayuEGJlb2OzNBIhKUpUJkpSlCEpSlCErb0+wa/lmG8IkMLzOx8Ao/qcD51qVY6VKFS+tycNcWxRT6hlfHz2kfOnpgF11XVLgwluq24rSCDsfPeyoDPc3Kwwkj8KqNzH9BV32Z7Ex39gt9qLOElBMMSHGR4MT/SqOWXv+x9ui9ba8cOPR1BU/wArV9U0aeKbRLGaIju+4TGPDAwR9Qa6eDoU6tTtCwAXB/J4qvQonIYLnG+6NB5i65TTez0PaHsdZJNI0VzbmVIpByB948EeIrkLfSpftG70qdNt2FYIP41+9j5gED3FfTeyUZj7M2hIwZC8nyZyR+WK5W5Zbv8AanD8Pg7J4w5Hmqjd+hpq+HZs6T+8wPGyrwmMqitXpz2W5iOBB9iuMFu7WzTryiuFb0yOP0P0qKryBEFjr0wI7gBY0HmxlBXHyVqo65T25Y4/a9DTqZy7h9A/KUpSkVqUpShCUpShCUBIOQcGlKEKeG5eGKeIcpMgVhnyIIP5VZ6R2k1HS7aaygZXhmVlCP8AuMwxlfI1pWd7JE4VpI9nlNEJF+hBroba1M4S5h0Czv8AaQ26wuHUg+qZyPpWmiHEyx0HrdKxYp1MAiq2QfDXzgc1a9pu0N32eW30awRI9lsg748sOMceA6da43SdTl067muI0aSd4XjVupUsMbv1rt5o73Xrxbm57H5lVdu+5uWRQM56YGetVWr61qeiD4a0+ybPPBSwwzr7nwrXiA4u2hcQ0aWPzC5mDc0U9g1gLz+3aF/STyXH95IIzFuYIW3Fc8ZHGf1rCpbm6nvJ2muJXlkbqznJNRVzCu+NLpSlKhSlKUoQlKv7eFNW0aOyVEF9bo00DAAGVNx3IfMgDcPY1hepGOzdgkIQbrqYM/A3kBOSfLk4q7ZWzTaJWYYgZspF5j3M8uoVHSunTRLu60GS3TT5PibV1lSRY896H4Zdw4ODt/OsHlu4NFvZZtq3UV5CAQFO0bX4GOMcDj0qdgRruS/62mzYJmNd8Qea5uskkeNw8bsrDoVODV7okAu3lgnhU/aAaNZNoxG3VSPLLYHtmtPR7ldP1hBdLiFiYbhWHRW+63zHX5Uop/qZsU5rTmAEkc+rhasmo30ybZby4kXyaViP1rWqxuLeXSZb2BziQObfjxAOSfpj61exsf8AEVn050oE8Dr8OTn680wplxhxvMJHV202ywWgn0XI0re0b/PdP9biMHP+oVHqXOqXf+8//Y1Vl7OZX5+3k4StWldBb2nxGg3Nn3QE8Ci8R8DLcffX/iQcfwmsNPiiu9Phis76O01CORiySnYJs424fpkdMGrNibceoVRxIAJjQx/fBUVK2b9Z01CdbqIRThyJEChQrePA6UqoiDC0NMgFYSThooFRCjxqVLBvxZJPy64raXUk+Bs7WS2DpbzPKTvI37sZB8vwiq+prW4a1nEqqrEAjDdORTNcQUjqYI006+Vs6dqk1he9/gyo24SRMxCuGBBBx71it+E0uexEI2yzLKH3crtBAH8xrFb4qUPdqdiFMHkEGso9ReNoyscf3BjGOM7cZ/L60wdaJ6KQ0wTOXd37tFDNcb5kkiUxBAoUBs4wOuffn51Jqd6NR1CW77lYmlO51U5BbxPzPNQyTmQRAjiMEDnryT/Wp/tBt5YxIcyCTGP3hjOPfHNLNiJTZYIIFwvL/UJdQkieYKGjiWPI/ewMZPr0+lbi64y6hFd/DJmO1+GC7jgjZsz74NaHxb/Ed9gbtmz+XGfeslvnSPaqKD3fd7vHGc/3+tMHmZlKaTSA3LaI9dVJb30NrNBNFaL3kMyy7mcnOOg9s0e9t5J5ZXslZpH3nMhwPvZIHv0qJrwtGyGNPvKqk48uh98cVkt+6rbju0Pc9Mjrnrmozd08lOzvMX8VlZ6jJZaol+iKzK5Yo3Rgc5B9CCRR7yCSFI3s0xGTsZWIO0knafPGfeoZ7kzQwxlFURAgEePvUFRnIsDZTs2k5iL9famurqW8upLiYgyOcnFKhpSkyZKsAAEBf//Z';
+document.querySelectorAll('.login-logo,.topbar-logo').forEach(function(el){el.src=LOGO;});
+
+function buildSelect(){
+  var sel=document.getElementById('login-role');
+  if(!sel)return;
+  sel.innerHTML='<option value="">— '+t('selectStaff')+' —</option>';
+  staff.filter(function(s){return s.active;}).forEach(function(s){
+    var o=document.createElement('option');o.value=s.id;
+    o.textContent=s.fname+' '+(s.lname||'');sel.appendChild(o);
+  });
+}
+
+function initPins(){
+  var pins=document.querySelectorAll('.pin');
+  pins.forEach(function(el,i){
+    el.setAttribute('readonly','');
+    el.addEventListener('focus',function(){this.removeAttribute('readonly');this.value='';});
+    el.addEventListener('input',function(){
+      if(this.value&&i<pins.length-1) pins[i+1].focus();
+      else if(i===pins.length-1&&Array.from(pins).every(function(p){return p.value;})) doLogin();
+    });
+    el.addEventListener('keydown',function(e){if(e.key==='Backspace'&&!this.value&&i>0)pins[i-1].focus();});
+  });
+}
+
+function clearPins(){document.querySelectorAll('.pin').forEach(function(el){el.value='';el.setAttribute('readonly','');});}
+
+function autoLoginFromQuery(){
+  try{
+    var params=new URLSearchParams(location.search);
+    var sid=params.get('autostaff');
+    var pin=params.get('autopin');
+    if(!sid||!pin)return;
+    var sel=document.getElementById('login-role');
+    if(sel) sel.value=sid;
+    var pins=document.querySelectorAll('.pin');
+    for(var i=0;i<pins.length;i++){pins[i].removeAttribute('readonly');pins[i].value=pin[i]||'';}
+    doLogin();
+  }catch(e){console.warn('Auto-Login fehlgeschlagen:',e);}
+}
+function doLogin(){
+  var sid=document.getElementById('login-role').value;
+  var pin=Array.from(document.querySelectorAll('.pin')).map(function(p){return p.value;}).join('');
+  var m=staff.find(function(s){return String(s.id)===String(sid);});
+  if(!m){document.getElementById('login-err').textContent=t('selectStaff');return;}
+  if(m.pin===null||m.pin===undefined||m.pin===''){document.getElementById('login-err').textContent=t('noPin')||'Kein PIN hinterlegt';clearPins();return;}
+  if(pin.length<4||String(m.pin).padStart(4,'0')!==pin){document.getElementById('login-err').textContent=t('wrongPin');clearPins();document.querySelectorAll('.pin')[0].focus();return;}
+  document.getElementById('login').classList.add('hidden');
+  var un=document.getElementById('topbar-user');if(un)un.textContent=m.fname;
+  if(typeof afterLogin==='function')afterLogin(m);
+}
+
+function doLogout(){
+  logAction('Abgemeldet','Küche');
+  document.getElementById('login').classList.remove('hidden');
+  clearPins();
+  document.getElementById('login-err').textContent='';
+  if(typeof afterLogout==='function')afterLogout();
+}
+
+
+function notify(msg,dur){var el=document.getElementById('notif');if(!el)return;el.textContent=msg;el.classList.add('show');setTimeout(function(){el.classList.remove('show');},dur||2500);}
+
+
+var orders=[],curF='all',timer=null;
+var BAR=['Cocktails','Premium Cocktails','Spanish Drinks','Drinks','Coffee','Tea','Soda','Fresh Juice','Beer','Wine'];
+var SM={1:'cooking',2:'ready',3:'served'};
+
+function onLangChange(){
+  document.getElementById('login-btn').textContent=t('signIn');
+  document.getElementById('fl-all').textContent=t('all');
+  document.getElementById('fl-new').textContent=t('new');
+  document.getElementById('fl-cooking').textContent=t('zubereitung');
+  document.getElementById('fl-ready').textContent=t('fertig');
+  render();
+}
+
+function setF(f,btn){curF=f;document.querySelectorAll('.fbtn').forEach(function(b){b.classList.remove('on');});btn.classList.add('on');render();}
+
+async function load(){
+  try{
+    var d=await sbGet('orders','select=id,table_number,status,note,created_at,order_items(id,name,quantity,category)&status=in.(new,cooking,ready)&order=created_at.asc');
+    orders=d.map(function(o){
+      var items=(o.order_items||[]).filter(function(i){return BAR.indexOf(i.category)<0;});
+      if(!items.length) return null;
+      return {id:o.id,table:o.table_number,status:o.status,note:o.note||'',
+               ts:new Date(o.created_at).getTime(),
+               items:items.map(function(i){return {id:i.id,name:i.name,qty:i.quantity,cat:i.category||'',done:false};})
+      };
+    }).filter(Boolean);
+    var ld=document.getElementById('live');if(ld)ld.className='live';
+    render();
+  }catch(e){var ld=document.getElementById('live');if(ld)ld.className='live off';}
+}
+
+function render(){
+  var filtered=curF==='all'?orders:orders.filter(function(o){return o.status===curF;});
+  ['all','new','cooking','ready'].forEach(function(k){
+    var el=document.getElementById('n-'+k);
+    if(el)el.textContent=(k==='all'?orders:orders.filter(function(o){return o.status===k;})).length;
+  });
+  var main=document.getElementById('kds-main');
+  if(!filtered.length){main.innerHTML='<div class="empty">'+t('noOrders')+'</div>';return;}
+  main.innerHTML=filtered.map(function(o){
+    var mins=Math.round((Date.now()-o.ts)/60000);
+    var tc=mins>20?'urgent':mins>10?'warn':'ok';
+    var items=o.items.map(function(it,idx){
+      return '<div class="titem'+(it.done?' done':'')+'">'+
+        '<div class="iqty">'+it.qty+'x</div>'+
+        '<div style="flex:1"><div class="iname">'+it.name+'</div><div class="icat">'+it.cat+'</div></div>'+
+        '<div class="icheck'+(it.done?' done':'')+'" onclick="tick('+o.id+','+idx+')">'+(it.done?'✓':'')+'</div>'+
+        '</div>';
+    }).join('');
+    var note=o.note?'<div class="tnote">📝 '+o.note+'</div>':'';
+    var btn='';
+    if(o.status==='new') btn='<button class="tbtn start" onclick="upd('+o.id+',1)">'+t('start')+'</button>';
+    else if(o.status==='cooking') btn='<button class="tbtn ready" onclick="upd('+o.id+',2)">'+t('ready')+'</button>';
+    else if(o.status==='ready') btn='<button class="tbtn served" onclick="upd('+o.id+',3)">'+t('served')+'</button>';
+    return '<div class="ticket '+o.status+'">'+
+      '<div class="thead '+o.status+'"><div class="ttable">'+tw()+o.table+'</div><span class="ttime '+tc+'">'+mins+' min</span></div>'+
+      '<div class="tbody">'+items+'</div>'+note+
+      '<div class="tfoot">'+btn+'</div></div>';
+  }).join('');
+}
+
+function tick(oid,idx){var o=orders.find(function(x){return x.id===oid;});if(o&&o.items[idx]){o.items[idx].done=!o.items[idx].done;render();}}
+
+async function upd(oid,ns){
+  if(typeof ns==='number')ns=SM[ns];
+  var o=orders.find(function(x){return x.id===oid;});
+  if(!o)return;
+  o.status=ns;
+  if(ns==='served')orders=orders.filter(function(x){return x.id!==oid;});
+  render();
+  logAction('Status geändert','Tisch '+o.table+' → '+ns);
+  try{await sbPatch('orders','id=eq.'+oid,{status:ns});}catch(e){notify('⚠ '+e.message);}
+}
+
+function afterLogin(m){currentStaff=m;setLang(m.preferred_lang||'de');logAction('Angemeldet','Küche');onLangChange();load();timer=setInterval(load,10000);}
+function afterLogout(){if(timer)clearInterval(timer);orders=[];render();}
+
+window.addEventListener('DOMContentLoaded',function(){
+  loadStaff();initPins();onLangChange();
+  for(var _i=0;_i<8;_i++){history.pushState(null,'',location.href);}
+  window.addEventListener('popstate',function(){history.pushState(null,'',location.href);});
+});
+</script>
+</body>
+</html>

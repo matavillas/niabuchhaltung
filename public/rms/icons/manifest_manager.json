@@ -1,0 +1,14 @@
+{
+  "name": "Mata Villas Manager",
+  "short_name": "Manager",
+  "id": "/rms/manager_terminal.html",
+  "scope": "/rms/manager_terminal.html",
+  "start_url": "/rms/manager_terminal.html",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#1E2838",
+  "icons": [
+    {"src": "manager_icon_192.png", "sizes": "192x192", "type": "image/png"},
+    {"src": "manager_icon_512.png", "sizes": "512x512", "type": "image/png"}
+  ]
+}

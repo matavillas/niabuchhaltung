@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<!-- Mata Villas Tischplan v2026-06-10-E -->
+<html>
+<head>
+<meta charset="UTF-8">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=3.0">
+<title>Tischplan — Mata Villas</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,Arial,sans-serif;background:#e8e0d4;color:#1a1815;user-select:none}
+.topbar{background:#fff;border-bottom:1px solid #ddd;padding:10px 14px;display:flex;align-items:center;gap:8px;position:sticky;top:0;z-index:99}
+.topbar img{height:32px;object-fit:contain}
+.topbar-title{font-size:15px;font-weight:700;flex:1}
+.tbtn{padding:6px 12px;border-radius:8px;font-size:12px;font-weight:700;border:1px solid #ddd;background:#f5f2ed;color:#555;cursor:pointer;font-family:inherit}
+.tbtn.on{background:#1a7fa8;color:#fff;border-color:#1a7fa8}
+.plan-outer{padding:16px;overflow:auto;-webkit-overflow-scrolling:touch}
+.plan{position:relative;margin:0 auto;background:#d8cfc0}
+@media(max-width:600px){
+  .plan-outer{padding:4px;overflow:auto;-webkit-overflow-scrolling:touch}
+  .topbar-title{font-size:12px}
+  .tbtn{padding:4px 8px;font-size:11px}
+  .topbar{padding:6px 8px}
+}
+.tisch{position:absolute;display:flex;align-items:center;justify-content:center;border:2px solid #bbb;background:#fff;cursor:pointer}
+.tisch.occupied{background:#ffeaea;border-color:#e74c3c}
+.tisch.reserved{background:#fff8e1;border-color:#f39c12}
+.tisch-num{font-size:12px;font-weight:700;color:#333;pointer-events:none}
+.sofa-el{position:absolute;cursor:pointer}
+.edit-mode .tisch,.edit-mode .sofa-el{cursor:grab;outline:2px solid #1a7fa8;outline-offset:1px}
+.rot-btn{position:absolute;bottom:-15px;right:-15px;width:22px;height:22px;border-radius:50%;background:#1a7fa8;color:#fff;font-size:13px;display:none;align-items:center;justify-content:center;cursor:pointer;z-index:10;border:2px solid #fff}
+.edit-mode .rot-btn{display:flex}
+.legend{display:flex;gap:14px;padding:8px 16px;background:#fff;border-top:1px solid #eee;font-size:12px;align-items:center}
+.leg{display:flex;align-items:center;gap:5px}
+.leg-box{width:14px;height:10px;border-radius:2px;border:2px solid}
+.notif{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1a1815;color:#fff;border-radius:8px;padding:10px 18px;font-size:13px;z-index:300;opacity:0;pointer-events:none;transition:opacity .3s;white-space:nowrap}
+.notif.sh{opacity:1}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <img id="logo" src="" alt="">
+  <span class="topbar-title">Tischplan — Mata Villas</span>
+  <button class="tbtn" id="edit-btn" onclick="toggleEdit()">✏️ Edit</button>
+  <button class="tbtn" id="mgr-btn" onclick="toggleManager()">👔 Manager</button>
+  <button class="tbtn" onclick="loadStatus()">🔄</button>
+</div>
+<div class="plan-outer">
+  <div class="plan" id="plan"></div>
+</div>
+<div class="legend">
+  <div class="leg"><div class="leg-box" style="background:#fff;border-color:#bbb"></div> Free</div>
+  <div class="leg"><div class="leg-box" style="background:#ffeaea;border-color:#e74c3c"></div> Occupied</div>
+  <div class="leg"><div class="leg-box" style="background:#fff8e1;border-color:#f39c12"></div> Reserved</div>
+</div>
+<div class="notif" id="notif"></div>
+
+<!-- TABLE MODAL -->
+<div id="tbl-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;align-items:center;justify-content:center;padding:20px">
+  <div style="background:#fff;border-radius:16px;padding:20px;width:100%;max-width:340px">
+    <div id="tbl-modal-title" style="font-size:16px;font-weight:700;margin-bottom:14px"></div>
+    <div id="tbl-modal-body"></div>
+    <div id="tbl-modal-btns" style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap"></div>
+  </div>
+</div>
+
+<!-- MANAGER PANEL -->
+<div id="mgr-panel" style="display:none;padding:12px 16px;background:#fff;border-top:1px solid #eee">
+  <div style="font-size:13px;font-weight:700;margin-bottom:10px;color:#555">Tisch hinzufügen</div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+    <input id="mgr-num" type="number" placeholder="Nummer" style="width:80px;padding:6px 8px;border:1px solid #ccc;border-radius:6px;font-size:13px">
+    <select id="mgr-shape" style="padding:6px 8px;border:1px solid #ccc;border-radius:6px;font-size:13px">
+      <option value="rect">Rechteckig</option>
+      <option value="square">Quadratisch</option>
+    </select>
+    <select id="mgr-area" style="padding:6px 8px;border:1px solid #ccc;border-radius:6px;font-size:13px">
+      <option value="innen">Innen</option>
+      <option value="garden_top">Garten oben</option>
+      <option value="garden_bot">Garten unten</option>
+      <option value="cashier">Kasse</option>
+      <option value="bar">Bar</option>
+    </select>
+    <button class="tbtn" onclick="addTable()" style="background:#2d7a4f;color:#fff;border-color:#2d7a4f">+ Hinzufügen</button>
+  </div>
+  <div style="font-size:13px;font-weight:700;margin:12px 0 8px;color:#555">Tische entfernen</div>
+  <div id="mgr-table-list" style="display:flex;gap:6px;flex-wrap:wrap"></div>
+</div>
+
+<script>
+var LOGO='data:image/jpeg;base64,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';
+document.getElementById('logo').src=LOGO;
+
+var SB_URL='https://pxzdkyvndosikdmstnpp.supabase.co';
+var SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB4emRreXZuZG9zaWtkbXN0bnBwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1NTIyNzQsImV4cCI6MjA5NTEyODI3NH0.QX1Iki-lguTfVsmyYWA9yPRtC8Qln-lMhSbCdMSdlYw';
+
+var editMode=false, tableStatus={}, managerMode=false;
+
+// Layout
+var PW=600, PH=600;
+var STR_H=44;       // Street height
+var ENTR_X=430, ENTR_W=130, ENTR_Y=STR_H, ENTR_H=90;  // Entrance (narrower, shorter)
+var GARD_Y=STR_H, GARD_H=90;                            // Upper garden
+var STEP_Y=GARD_Y+GARD_H;                               // Steps line y
+var INN_Y=STEP_Y+10, INN_H=340, INN_W=560;             // Indoor (wider)
+var CB_X=INN_W, CB_W=40;                                // Cashier+Bar strip x (right edge, below entrance end)
+var CB_Y=ENTR_Y+ENTR_H;                                 // starts after entrance ends
+var CASH_H=170, BAR_H=(INN_Y+INN_H)-(CB_Y+CASH_H);
+var LOW_Y=INN_Y+INN_H+10;                               // Lower garden
+
+// Default table positions
+var defaultTables=[
+  // Upper garden
+  {num:11,area:'garden_top', shape:'square',w:52,h:40,x:28,  y:GARD_Y+25,rot:0},
+  {num:12,area:'garden_top', shape:'square',w:52,h:40,x:110, y:GARD_Y+25,rot:0},
+  // Indoor top row CCW from sofa(1): 4(leftmost), 3, 2, then sofa=1(rightmost)
+  {num:4, area:'innen',shape:'rect',w:75,h:52,x:16,  y:INN_Y+30,rot:0},
+  {num:3, area:'innen',shape:'rect',w:75,h:52,x:110, y:INN_Y+30,rot:0},
+  {num:2, area:'innen',shape:'rect',w:75,h:52,x:204, y:INN_Y+30,rot:0},
+  // Indoor bottom row CCW: 5(leftmost) -> 9(rightmost)
+  {num:5, area:'innen',shape:'rect',w:75,h:52,x:16,  y:INN_Y+200,rot:0},
+  {num:6, area:'innen',shape:'rect',w:75,h:52,x:110, y:INN_Y+200,rot:0},
+  {num:7, area:'innen',shape:'rect',w:75,h:52,x:204, y:INN_Y+200,rot:0},
+  {num:8, area:'innen',shape:'rect',w:75,h:52,x:298, y:INN_Y+200,rot:0},
+  {num:9, area:'innen',shape:'rect',w:75,h:52,x:392, y:INN_Y+200,rot:0},
+  // Cashier tables
+  {num:20,area:'cashier',shape:'small',w:32,h:22,x:CB_X+4,y:CB_Y+14,rot:0},
+  // Bar tables
+  {num:21,area:'bar',    shape:'small',w:32,h:22,x:CB_X+4,y:CB_Y+CASH_H+14,rot:0},
+  // Lower garden
+  {num:30,area:'garden_bot',shape:'square',w:52,h:40,x:28,y:LOW_Y+20,rot:0},
+];
+
+// Sofa = table 1, special
+var defaultSofa={num:1,x:460,y:INN_Y+30,w:88,h:34,rot:0};
+var sofa={};
+
+var tables=[];
+
+async function sbGet(path){
+  var r=await fetch(SB_URL+'/rest/v1/'+path,{headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}});
+  if(!r.ok) throw new Error(r.status);
+  return r.json();
+}
+async function sbUpsert(data){
+  return fetch(SB_URL+'/rest/v1/table_positions',{
+    method:'POST',
+    headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'resolution=merge-duplicates'},
+    body:JSON.stringify(data)
+  });
+}
+
+async function loadPositions(){
+  try{
+    var rows=await sbGet('table_positions?order=table_num');
+    if(rows&&rows.length>0){
+      tables=rows.filter(function(r){return r.table_num!==1;}).map(function(r){
+        return{num:r.table_num,area:r.area,shape:r.shape,w:r.w,h:r.h,x:r.x,y:r.y,rot:r.rot||0};
+      });
+      var sofaRow=rows.find(function(r){return r.table_num===1;});
+      sofa=sofaRow?{num:1,x:sofaRow.x,y:sofaRow.y,w:sofaRow.w,h:sofaRow.h,rot:sofaRow.rot||0}:Object.assign({},defaultSofa);
+    }else{
+      tables=JSON.parse(JSON.stringify(defaultTables));
+      sofa=Object.assign({},defaultSofa);
+      await savePositions();
+    }
+  }catch(e){
+    tables=JSON.parse(JSON.stringify(defaultTables));
+    sofa=Object.assign({},defaultSofa);
+  }
+  loadStatus();
+}
+
+async function savePositions(){
+  var rows=tables.map(function(t){
+    return{table_num:t.num,area:t.area,shape:t.shape,w:t.w,h:t.h,x:t.x,y:t.y,rot:t.rot};
+  });
+  rows.push({table_num:1,area:'entrance',shape:'sofa',w:sofa.w,h:sofa.h,x:sofa.x,y:sofa.y,rot:sofa.rot||0});
+  try{await sbUpsert(rows);}catch(e){}
+}
+
+async function loadStatus(){
+  try{
+    // Load active orders
+    var data=await sbGet('orders?status=in.(new,cooking,making,served)&select=table_number');
+    tableStatus={};
+    data.forEach(function(o){tableStatus[o.table_number]='occupied';});
+
+    // Load today's reservations and apply time-based logic
+    var today=new Date().toISOString().slice(0,10);
+    var now=new Date();
+    var resData=await sbGet('reservations?date=eq.'+today+'&select=table_num,time');
+    resData.forEach(function(r){
+      if(tableStatus[r.table_num]==='occupied') return; // already occupied
+      var resTime=new Date(today+'T'+r.time);
+      var diffMins=Math.round((now-resTime)/60000);
+      // -60 to +30 min window: show as reserved
+      // after +30 min: no-show, treat as free
+      if(diffMins>=-60 && diffMins<=30){
+        tableStatus[r.table_num]='reserved';
+      }
+      // else: free (no-show or too far in future)
+    });
+  }catch(e){}
+  renderPlan();
+}
+
+function notify(msg){var el=document.getElementById('notif');el.textContent=msg;el.classList.add('sh');setTimeout(function(){el.classList.remove('sh');},2000);}
+
+function toggleEdit(){
+  editMode=!editMode;
+  var btn=document.getElementById('edit-btn');
+  btn.classList.toggle('on',editMode);
+  btn.textContent=editMode?'✓ Done':'✏️ Edit';
+  document.getElementById('plan').classList.toggle('edit-mode',editMode);
+  if(!editMode){savePositions();notify('✓ Saved');}
+  renderPlan();
+}
+
+var NS='http://www.w3.org/2000/svg';
+function mkSVG(tag,attrs){
+  var el=document.createElementNS(NS,tag);
+  for(var k in attrs) el.setAttribute(k,attrs[k]);
+  return el;
+}
+
+function renderPlan(){
+  var plan=document.getElementById('plan');
+  plan.style.width=PW+'px'; plan.style.height=(LOW_Y+80)+'px';
+  plan.innerHTML='';
+
+  var svg=mkSVG('svg',{width:PW,height:LOW_Y+80});
+  svg.style.cssText='position:absolute;top:0;left:0;pointer-events:none';
+
+  var defs=mkSVG('defs',{});
+  var pk=mkSVG('pattern',{id:'hk',width:'7',height:'7',patternUnits:'userSpaceOnUse',patternTransform:'rotate(45)'});
+  pk.appendChild(mkSVG('line',{x1:'0',y1:'0',x2:'0',y2:'7',stroke:'rgba(140,100,50,.55)','stroke-width':'1.3'}));
+  defs.appendChild(pk);
+  var pb=mkSVG('pattern',{id:'hb',width:'7',height:'7',patternUnits:'userSpaceOnUse'});
+  pb.appendChild(mkSVG('line',{x1:'0',y1:'3.5',x2:'7',y2:'3.5',stroke:'rgba(70,50,130,.5)','stroke-width':'1.3'}));
+  defs.appendChild(pb);
+  svg.appendChild(defs);
+
+  function R(x,y,w,h,fill,stroke,sw,dash,rx){
+    var el=mkSVG('rect',{x:x,y:y,width:w,height:h,fill:fill||'none',stroke:stroke||'none','stroke-width':sw||1});
+    if(dash) el.setAttribute('stroke-dasharray',dash);
+    if(rx) el.setAttribute('rx',rx);
+    return el;
+  }
+  function L(x1,y1,x2,y2,stroke,sw,dash){
+    var el=mkSVG('line',{x1:x1,y1:y1,x2:x2,y2:y2,stroke:stroke||'#999','stroke-width':sw||1});
+    if(dash) el.setAttribute('stroke-dasharray',dash);
+    return el;
+  }
+  function T(x,y,txt,size,fill,anchor,weight){
+    var el=mkSVG('text',{x:x,y:y,'font-size':size||11,fill:fill||'#888','text-anchor':anchor||'start','font-family':'system-ui,sans-serif','font-weight':weight||'normal'});
+    el.textContent=txt; return el;
+  }
+
+  // Street
+  svg.appendChild(R(0,0,CB_X,STR_H,'rgba(170,160,140,.25)','rgba(120,110,90,.4)',1.5));
+  svg.appendChild(T(CB_X/2,STR_H/2+5,'Street',13,'#7a6e5a','middle','700'));
+
+  // Entrance (narrower)
+  svg.appendChild(R(ENTR_X,ENTR_Y,ENTR_W,ENTR_H,'rgba(245,236,213,.5)','rgba(192,144,64,.7)',2,null,3));
+  svg.appendChild(T(ENTR_X+ENTR_W/2,ENTR_Y+ENTR_H/2+4,'Entrance',10,'#8a6020','middle','700'));
+
+  // Upper garden
+  svg.appendChild(R(0,GARD_Y,ENTR_X,GARD_H,'rgba(80,140,50,.09)','rgba(70,130,40,.4)',1.5));
+
+  // Steps
+
+  // Indoor
+  svg.appendChild(R(0,INN_Y,INN_W,INN_H,'rgba(210,190,160,.2)','rgba(130,105,70,.6)',2.5));
+
+  // Cashier strip — only left border (no right border = flush with edge)
+  svg.appendChild(R(CB_X,CB_Y,CB_W,CASH_H,'url(#hk)','rgba(140,100,50,.7)',1.5));
+  svg.appendChild(T(CB_X+CB_W/2,CB_Y+CASH_H/2+4,'Cashier',8,'#7a5020','middle','700',));
+
+  // Bar strip
+  var barY=CB_Y+CASH_H;
+  svg.appendChild(R(CB_X,barY,CB_W,BAR_H,'url(#hb)','rgba(70,50,140,.6)',1.5));
+  svg.appendChild(T(CB_X+CB_W/2,barY+BAR_H/2+4,'Bar',8,'#3a2870','middle','700'));
+
+  // Lower garden
+  svg.appendChild(R(0,LOW_Y,INN_W,70,'rgba(80,140,50,.09)','rgba(70,130,40,.4)',1.5));
+
+  plan.appendChild(svg);
+
+  // ── SOFA (table 1) ──────────────────────────────────────────
+  renderSofa();
+
+  // ── TABLES ──────────────────────────────────────────────────
+  tables.forEach(function(t){
+    var el=document.createElement('div');
+    el.className='tisch '+(tableStatus[t.num]||'free');
+    var br=t.shape==='round'?'50%':t.shape==='small'?'4px':'6px';
+    el.style.cssText='position:absolute;left:'+t.x+'px;top:'+t.y+'px;width:'+t.w+'px;height:'+t.h+'px;border-radius:'+br+';transform:rotate('+t.rot+'deg)';
+    el.addEventListener('click',function(e){
+      if(editMode||e.target.classList.contains('rot-btn')) return;
+      openTableModal(t);
+    });
+    var numEl=document.createElement('div');
+    numEl.className='tisch-num';
+    numEl.textContent=t.num;
+    numEl.style.cssText='transform:rotate(-'+t.rot+'deg);position:absolute;top:0;left:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;pointer-events:none';
+    el.appendChild(numEl);
+
+    if(t.shape==='rect'||t.shape==='square'||t.shape==='small'){
+      var rb=document.createElement('div');
+      rb.className='rot-btn';
+      rb.innerHTML='↻';
+      rb.addEventListener('mousedown',function(e){e.stopPropagation();e.preventDefault();});
+      rb.addEventListener('mouseup',function(e){
+        e.stopPropagation();
+        if(!editMode) return;
+        t.rot=(t.rot+45)%360;
+        el.style.transform='rotate('+t.rot+'deg)';
+        savePositions();
+      });
+      rb.addEventListener('touchend',function(e){
+        e.stopPropagation();e.preventDefault();
+        if(!editMode) return;
+        t.rot=(t.rot+45)%360;
+        el.style.transform='rotate('+t.rot+'deg)';
+        savePositions();
+      });
+      el.appendChild(rb);
+    }
+    makeDraggable(el,t);
+    plan.appendChild(el);
+  });
+}
+
+function renderSofa(){
+  var plan=document.getElementById('plan');
+  var s=sofa;
+  var el=document.createElement('div');
+  el.className='sofa-el';
+  el.style.cssText='position:absolute;left:'+s.x+'px;top:'+s.y+'px;width:'+s.w+'px;height:'+s.h+'px;transform:rotate('+(s.rot||0)+'deg)';
+  el.innerHTML=
+    '<svg width="'+s.w+'" height="'+s.h+'" style="overflow:visible">'
+    +'<rect x="0" y="0" width="'+s.w+'" height="10" rx="4" fill="#b8a070" stroke="#8a6830" stroke-width="1.5"/>'
+    +'<rect x="0" y="10" width="'+s.w+'" height="'+(s.h-10)+'" rx="3" fill="#d4b880" stroke="#8a6830" stroke-width="1.5"/>'
+    +'<rect x="0" y="0" width="10" height="'+s.h+'" rx="3" fill="#b8a070" stroke="#8a6830" stroke-width="1.5"/>'
+    +'<rect x="'+(s.w-10)+'" y="0" width="10" height="'+s.h+'" rx="3" fill="#b8a070" stroke="#8a6830" stroke-width="1.5"/>'
+    +'<line x1="'+(s.w/3)+'" y1="11" x2="'+(s.w/3)+'" y2="'+s.h+'" stroke="#8a6830" stroke-width="1" opacity=".4"/>'
+    +'<line x1="'+(s.w*2/3)+'" y1="11" x2="'+(s.w*2/3)+'" y2="'+s.h+'" stroke="#8a6830" stroke-width="1" opacity=".4"/>'
+    +'<text x="'+(s.w/2)+'" y="'+(s.h/2+4)+'" text-anchor="middle" font-size="11" fill="#5a3810" font-weight="700" font-family="system-ui,sans-serif">1</text>'
+    +'</svg>';
+  if(editMode){
+    var srb=document.createElement('div');
+    srb.className='rot-btn';srb.style.display='flex';srb.innerHTML='&#8635;';
+    srb.addEventListener('mousedown',function(e){e.stopPropagation();e.preventDefault();});
+    srb.addEventListener('mouseup',function(e){
+      e.stopPropagation();
+      sofa.rot=((sofa.rot||0)+45)%360;
+      el.style.transform='rotate('+sofa.rot+'deg)';
+      savePositions();
+    });
+    srb.addEventListener('touchend',function(e){
+      e.stopPropagation();e.preventDefault();
+      sofa.rot=((sofa.rot||0)+45)%360;
+      el.style.transform='rotate('+sofa.rot+'deg)';
+      savePositions();
+    });
+    el.appendChild(srb);
+  }
+  makeDraggableEl(el,sofa);
+  plan.appendChild(el);
+}
+
+function openTableModal(t){
+  if(editMode) return;
+  var modal=document.getElementById('tbl-modal');
+  var status=tableStatus[t.num]||'free';
+  document.getElementById('tbl-modal-title').textContent='Table '+t.num;
+  
+  // Load today's reservation
+  var today=new Date().toISOString().slice(0,10);
+  fetch(SB_URL+'/rest/v1/reservations?table_num=eq.'+t.num+'&date=eq.'+today+'&order=time',{
+    headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}
+  }).then(function(r){return r.json();}).then(function(res){
+    var resHtml='';
+    if(res&&res.length>0){
+      resHtml='<div style="margin-bottom:12px;padding:10px;background:#fff8e1;border-radius:8px;border:1px solid #f39c12">'
+        +'<div style="font-size:12px;font-weight:700;color:#e67e22;margin-bottom:6px">Reservierungen heute</div>'
+        +res.map(function(r){
+          return '<div style="font-size:13px;color:#555;margin-bottom:3px">'+r.time+' — '+r.name+(r.persons?' ('+r.persons+' Pers.)':'')+(r.phone?' 📞'+r.phone:'')+'</div>';
+        }).join('')+'</div>';
+    }
+    
+    var statusColor=status==='occupied'?'#e74c3c':status==='reserved'?'#f39c12':'#2d7a4f';
+    var statusLabel=status==='occupied'?'Belegt':status==='reserved'?'Reserviert':'Frei';
+    
+    document.getElementById('tbl-modal-body').innerHTML=
+      resHtml
+      +'<div style="margin-bottom:14px;font-size:14px">Status: <b style="color:'+statusColor+'">'+statusLabel+'</b></div>'
+      +'<div style="border-top:1px solid #eee;padding-top:12px">'
+      +'<div style="font-size:12px;font-weight:700;color:#aaa;text-transform:uppercase;margin-bottom:8px">Neue Reservierung</div>'
+      +'<label style="font-size:11px;color:#aaa;display:block;margin-bottom:3px">Name</label>'
+      +'<input id="res-name" placeholder="Name" style="width:100%;padding:7px 10px;border:1px solid #ccc;border-radius:7px;font-size:13px;margin-bottom:8px;font-family:inherit">'
+      +'<label style="font-size:11px;color:#aaa;display:block;margin-bottom:3px">Datum</label>'
+      +'<input id="res-date" type="date" value="'+today+'" style="width:100%;padding:7px 10px;border:1px solid #ccc;border-radius:7px;font-size:13px;margin-bottom:8px;font-family:inherit">'
+      +'<label style="font-size:11px;color:#aaa;display:block;margin-bottom:3px">Uhrzeit</label>'
+      +'<input id="res-time" type="time" style="width:100%;padding:7px 10px;border:1px solid #ccc;border-radius:7px;font-size:13px;margin-bottom:8px;font-family:inherit">'
+      +'<label style="font-size:11px;color:#aaa;display:block;margin-bottom:3px">Personen</label>'
+      +'<input id="res-persons" type="number" min="1" max="20" placeholder="Anzahl" style="width:100%;padding:7px 10px;border:1px solid #ccc;border-radius:7px;font-size:13px;margin-bottom:8px;font-family:inherit">'
+      +'<label style="font-size:11px;color:#aaa;display:block;margin-bottom:3px">Telefon</label>'
+      +'<input id="res-phone" type="tel" placeholder="+62..." style="width:100%;padding:7px 10px;border:1px solid #ccc;border-radius:7px;font-size:13px;font-family:inherit">'
+      +'</div>';
+    
+    document.getElementById('tbl-modal-btns').innerHTML=
+      '<button onclick="saveReservation('+t.num+')" style="padding:8px 16px;border-radius:8px;font-size:13px;font-weight:700;border:none;background:#1a7fa8;color:#fff;cursor:pointer;font-family:inherit">Reservieren</button>'
+      +'<button onclick="closeTblModal()" style="padding:8px 14px;border-radius:8px;font-size:13px;border:1px solid #ccc;background:#f5f2ed;color:#666;cursor:pointer;font-family:inherit">Schließen</button>';
+    
+    modal.style.display='flex';
+  }).catch(function(){
+    closeTblModal();
+  });
+}
+
+async function saveReservation(tableNum){
+  var name=document.getElementById('res-name').value.trim();
+  var date=document.getElementById('res-date').value;
+  var time=document.getElementById('res-time').value;
+  var persons=parseInt(document.getElementById('res-persons').value)||null;
+  var phone=document.getElementById('res-phone')?document.getElementById('res-phone').value.trim():'';
+  if(!name){notify('⚠ Name eingeben');return;}
+  if(!date||!time){notify('⚠ Datum und Uhrzeit eingeben');return;}
+  try{
+    var resp=await fetch(SB_URL+'/rest/v1/reservations',{
+      method:'POST',
+      headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'return=minimal'},
+      body:JSON.stringify({table_num:tableNum,date:date,time:time,name:name,persons:persons,phone:phone})
+    });
+    if(!resp.ok){var err=await resp.text();throw new Error(resp.status+' '+err);}
+    tableStatus[tableNum]='reserved';
+    closeTblModal();
+    renderPlan();
+    notify('✓ Reserviert: '+name+' '+time);
+  }catch(e){notify('⚠ Fehler: '+e.message);}
+}
+
+function closeTblModal(){
+  document.getElementById('tbl-modal').style.display='none';
+}
+
+document.getElementById('tbl-modal').addEventListener('click',function(e){
+  if(e.target===this) closeTblModal();
+});
+
+function makeDraggable(el,t){
+  var sx,sy,sl,st,dragging=false;
+  el.addEventListener('mousedown',function(e){
+    if(!editMode||e.target.classList.contains('rot-btn')) return;
+    e.preventDefault();
+    dragging=true; sx=e.clientX; sy=e.clientY; sl=t.x; st=t.y; el.style.zIndex=20;
+    var mm=function(e){if(!dragging)return;t.x=Math.max(0,sl+(e.clientX-sx));t.y=Math.max(0,st+(e.clientY-sy));el.style.left=t.x+'px';el.style.top=t.y+'px';};
+    var mu=function(){dragging=false;el.style.zIndex='';document.removeEventListener('mousemove',mm);document.removeEventListener('mouseup',mu);};
+    document.addEventListener('mousemove',mm); document.addEventListener('mouseup',mu);
+  });
+  el.addEventListener('touchstart',function(e){if(!editMode||e.target.classList.contains('rot-btn'))return;var t2=e.touches[0];dragging=true;sx=t2.clientX;sy=t2.clientY;sl=t.x;st=t.y;el.style.zIndex=20;},{passive:true});
+  el.addEventListener('touchmove',function(e){if(!dragging)return;e.preventDefault();var t2=e.touches[0];t.x=Math.max(0,sl+(t2.clientX-sx));t.y=Math.max(0,st+(t2.clientY-sy));el.style.left=t.x+'px';el.style.top=t.y+'px';},{passive:false});
+  el.addEventListener('touchend',function(){dragging=false;el.style.zIndex='';});
+}
+
+function makeDraggableEl(el,obj){
+  var sx,sy,sl,st,dragging=false;
+  el.addEventListener('mousedown',function(e){
+    if(!editMode) return; e.preventDefault();
+    dragging=true; sx=e.clientX; sy=e.clientY; sl=obj.x; st=obj.y; el.style.zIndex=20;
+    var mm=function(e){if(!dragging)return;obj.x=Math.max(0,sl+(e.clientX-sx));obj.y=Math.max(0,st+(e.clientY-sy));el.style.left=obj.x+'px';el.style.top=obj.y+'px';};
+    var mu=function(){dragging=false;el.style.zIndex='';document.removeEventListener('mousemove',mm);document.removeEventListener('mouseup',mu);};
+    document.addEventListener('mousemove',mm); document.addEventListener('mouseup',mu);
+  });
+  el.addEventListener('touchstart',function(e){if(!editMode)return;var t=e.touches[0];dragging=true;sx=t.clientX;sy=t.clientY;sl=obj.x;st=obj.y;el.style.zIndex=20;},{passive:true});
+  el.addEventListener('touchmove',function(e){if(!dragging)return;e.preventDefault();var t=e.touches[0];obj.x=Math.max(0,sl+(t.clientX-sx));obj.y=Math.max(0,st+(t.clientY-sy));el.style.left=obj.x+'px';el.style.top=obj.y+'px';},{passive:false});
+  el.addEventListener('touchend',function(){dragging=false;el.style.zIndex='';});
+}
+
+function toggleManager(){
+  managerMode=!managerMode;
+  var btn=document.getElementById('mgr-btn');
+  btn.classList.toggle('on',managerMode);
+  btn.textContent=managerMode?'✓ Manager':'👔 Manager';
+  document.getElementById('mgr-panel').style.display=managerMode?'block':'none';
+  if(managerMode) updateManagerList();
+}
+
+function updateManagerList(){
+  var list=document.getElementById('mgr-table-list');
+  if(!list) return;
+  var all=[{num:1,label:'1 (Sofa)'}].concat(tables.map(function(t){return{num:t.num,label:String(t.num)};}));
+  all.sort(function(a,b){return a.num-b.num;});
+  list.innerHTML=all.map(function(t){
+    return '<button onclick="removeTable('+t.num+')" style="padding:5px 10px;border:1px solid #e74c3c;background:#ffeaea;color:#c0392b;border-radius:6px;font-size:12px;cursor:pointer;font-family:inherit">'+t.label+' ✕</button>';
+  }).join('');
+}
+
+function addTable(){
+  var num=parseInt(document.getElementById('mgr-num').value);
+  var shape=document.getElementById('mgr-shape').value;
+  var area=document.getElementById('mgr-area').value;
+  if(!num||num<1){notify('⚠ Nummer eingeben');return;}
+  if(num===1||tables.find(function(t){return t.num===num;})){notify('⚠ Nummer bereits vergeben');return;}
+  var w=shape==='square'?60:75, h=shape==='square'?60:52;
+  tables.push({num:num,area:area,shape:shape,w:w,h:h,x:50,y:INN_Y+100,rot:0});
+  tables.sort(function(a,b){return a.num-b.num;});
+  savePositions();
+  renderPlan();
+  updateManagerList();
+  document.getElementById('mgr-num').value='';
+  notify('✓ Tisch '+num+' hinzugefügt');
+}
+
+function removeTable(num){
+  if(!confirm('Tisch '+num+' entfernen?')) return;
+  if(num===1){notify('⚠ Sofa kann nicht entfernt werden');return;}
+  tables=tables.filter(function(t){return t.num!==num;});
+  savePositions();
+  renderPlan();
+  updateManagerList();
+  notify('✓ Tisch '+num+' entfernt');
+}
+
+loadPositions();
+setInterval(loadStatus,15000);
+</script>
+</body>
+</html>

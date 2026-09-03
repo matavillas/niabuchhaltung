@@ -1,0 +1,1154 @@
+<!DOCTYPE html>
+<!-- Mata Villas v2026-08-24 20:15 -->
+<html lang="de">
+<head>
+<link rel="manifest" href="icons/manifest_cashier.json"><meta name="theme-color" content="#28A564">
+<meta charset="UTF-8">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Kassen-Terminal — Mata Villas</title>
+<style>
+:root{
+  --bg:#f0f4f8;--bg2:#fff;--border:#e2e8f0;
+  --text:#1a202c;--text2:#4a5568;--text3:#a0aec0;
+  --accent:#3182ce;--accent-bg:#ebf8ff;
+  --green:#276749;--green-bg:#f0fff4;--green-bd:#9ae6b4;
+  --orange:#c05621;--orange-bg:#fffaf0;--orange-bd:#fbd38d;
+  --red:#c53030;--red-bg:#fff5f5;--red-bd:#fed7d7;
+  --yellow:#b7791f;--yellow-bg:#fffff0;--yellow-bd:#fefcbf;
+  --font:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font);background:var(--bg);color:var(--text);height:100vh;height:100dvh;display:flex;flex-direction:column;overflow:hidden}
+.login{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;z-index:100}
+.login.hidden{display:none}
+.lcard{background:#fff;border-radius:16px;padding:32px 28px;width:320px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.2)}
+.lcard img{height:56px;object-fit:contain;margin-bottom:16px}
+.lcard h2{font-size:17px;font-weight:700;margin-bottom:20px}
+.lcard select{width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;font-size:14px;margin-bottom:16px;font-family:var(--font);background:#fff;outline:none}
+.pins{display:flex;gap:8px;justify-content:center;margin-bottom:16px}
+.pin{width:48px;height:52px;border:2px solid var(--border);border-radius:10px;font-size:22px;text-align:center;font-family:var(--font);background:#fff;outline:none}
+.pin:focus{border-color:var(--accent)}
+.lbtn{width:100%;padding:12px;border-radius:10px;background:var(--accent);color:#fff;border:none;font-size:15px;font-weight:600;cursor:pointer;font-family:var(--font)}
+.lerr{color:var(--red);font-size:13px;margin-top:8px;min-height:18px}
+.topbar{background:#fff;border-bottom:1px solid var(--border);padding:10px 16px;display:flex;align-items:center;gap:10px;flex-shrink:0}
+.topbar img{height:32px;object-fit:contain}
+.topbar-title{font-size:15px;font-weight:700}
+.topbar-right{margin-left:auto;display:flex;align-items:center;gap:8px;position:relative}
+.lb{padding:5px 10px;border-radius:6px;font-size:11px;font-weight:700;border:1.5px solid var(--border);background:var(--bg);color:var(--text2);cursor:pointer;font-family:var(--font)}
+.lb.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+.topbar-user{font-size:13px;color:var(--text2);white-space:nowrap}
+.logout-btn{padding:6px 10px;border-radius:6px;border:1.5px solid var(--border);background:var(--bg);cursor:pointer;font-size:14px;font-family:var(--font)}
+.more-menu{position:relative}
+.more-panel{display:none;position:absolute;top:calc(100% + 6px);right:0;background:#fff;border:1.5px solid var(--border);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.15);min-width:180px;z-index:60;overflow:hidden}
+.more-panel.show{display:block}
+.more-item{display:flex;align-items:center;gap:9px;padding:11px 14px;font-size:13px;font-weight:600;color:var(--text);cursor:pointer;text-decoration:none;border-bottom:1px solid var(--border)}
+.more-item:last-child{border-bottom:none}
+.more-item:active{background:var(--bg)}
+.more-item .ic{font-size:16px}
+.l-de,.l-en,.l-id{display:none}
+body.de .l-de,body.en .l-en,body.id .l-id{display:inline}
+.notif{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1a202c;color:#fff;border-radius:8px;padding:10px 20px;font-size:13px;z-index:200;opacity:0;pointer-events:none;transition:opacity .25s;white-space:nowrap}
+.notif.show{opacity:1}
+.layout{flex:1;display:flex;overflow:hidden;min-height:0}
+.bills-side{width:112px;flex-shrink:0;background:#fff;border-right:1.5px solid var(--border);display:flex;flex-direction:column}
+.bills-head{padding:8px 6px;font-size:10px;font-weight:700;border-bottom:1px solid var(--border);background:var(--bg);text-align:center;line-height:1.2}
+.bills-list{flex:1;overflow-y:auto}
+.bill-card{padding:10px 6px;border-bottom:1px solid var(--border);cursor:pointer;display:flex;flex-direction:column;align-items:center;text-align:center;gap:3px}
+.bill-card:hover{background:var(--bg)}
+.bill-card.sel{background:var(--accent-bg);border-left:3px solid var(--accent)}
+.bill-table{font-size:15px;font-weight:800}
+.bill-total{font-size:12px;color:var(--accent);font-weight:700}
+.bill-time{font-size:11px;color:var(--text3)}
+.bill-warn{font-size:11px;color:var(--orange);font-weight:600;margin-top:2px}
+.bmode-btn{display:flex!important;flex-direction:column;align-items:center;gap:1px;padding:7px 2px!important;font-size:9px!important}
+.bmode-btn .bm-ic{font-size:14px}
+@media (max-width:480px){
+  .bills-side{width:96px}
+  .bill-table{font-size:14px}
+  .bill-total{font-size:11px}
+  .topbar-title{display:none}
+}
+.pay-side{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.receipt{flex:1;overflow-y:auto;background:#fff}
+.receipt-empty{display:flex;align-items:center;justify-content:center;height:100%;color:var(--text3);font-size:15px}
+.receipt-head{padding:14px 16px;background:var(--accent);color:#fff;text-align:center}
+.receipt-logo{font-size:16px;font-weight:800}
+.receipt-sub{font-size:11px;opacity:.8;margin-top:2px}
+.receipt-warn{background:var(--orange-bg);border:1px solid var(--orange-bd);color:var(--orange);padding:8px 16px;font-size:12px;font-weight:600}
+.ritem{display:flex;justify-content:space-between;padding:6px 16px;font-size:13px;border-bottom:1px solid var(--border)}
+.ritem-name{flex:1}
+.ritem-price{color:var(--accent);font-weight:600;font-family:monospace}
+.rtotal{display:flex;justify-content:space-between;padding:14px 16px;font-size:18px;font-weight:800;background:var(--bg);border-top:2px solid var(--border)}
+.drow-table{width:100%;border-collapse:collapse}
+.drow-table td{padding:9px 16px;font-size:13px;border-bottom:1px solid var(--border)}
+.drow-table td:first-child{color:var(--text2)}
+.drow-table td:last-child{text-align:right;font-weight:600}
+.sec-label{padding:10px 16px 4px;font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em}
+.paysec{border-top:1.5px solid var(--border);padding:12px 16px;background:#fff;flex-shrink:0}
+.pay-label{font-size:12px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px}
+.pay-methods{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px}
+.pm{padding:10px 6px;border-radius:10px;border:2px solid var(--border);background:#fff;cursor:pointer;text-align:center;font-family:var(--font)}
+.pm.sel{border-color:var(--accent);background:var(--accent-bg)}
+.pm-icon{font-size:20px;margin-bottom:3px}
+.pm-label{font-size:11px;font-weight:700}
+.cash-row{display:flex;gap:8px;align-items:center;margin-bottom:10px}
+.cash-row input{flex:1;padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;font-family:var(--font);outline:none}
+.cash-row input:focus{border-color:var(--accent)}
+.confirm-btn{width:100%;padding:13px;border-radius:10px;background:var(--accent);color:#fff;border:none;font-size:15px;font-weight:700;cursor:pointer;font-family:var(--font)}
+.confirm-btn:disabled{opacity:.4;cursor:not-allowed}
+.paid-overlay{position:fixed;inset:0;background:rgba(39,103,73,.92);display:flex;align-items:center;justify-content:center;z-index:150;opacity:0;pointer-events:none;transition:opacity .3s}
+.paid-overlay.show{opacity:1;pointer-events:auto}
+.paid-box{text-align:center;color:#fff}
+.paid-icon{font-size:64px}
+.paid-msg{font-size:26px;font-weight:800;margin-top:8px}
+.paid-sub{font-size:15px;opacity:.8;margin-top:4px}
+</style>
+</head>
+<body class="de">
+<div class="login" id="login">
+  <div class="lcard">
+    <img class="login-logo" src="" alt="Mata Villas">
+    <h2>Kassen-Terminal</h2>
+    <select id="login-role"></select>
+    <div class="pins">
+      <input class="pin" type="tel" maxlength="1" inputmode="numeric" autocomplete="off" readonly>
+      <input class="pin" type="tel" maxlength="1" inputmode="numeric" autocomplete="off" readonly>
+      <input class="pin" type="tel" maxlength="1" inputmode="numeric" autocomplete="off" readonly>
+      <input class="pin" type="tel" maxlength="1" inputmode="numeric" autocomplete="off" readonly>
+    </div>
+    <button class="lbtn" onclick="doLogin()">
+      <span class="l-de">Anmelden</span><span class="l-en">Sign in</span><span class="l-id">Masuk</span>
+    </button>
+    <div class="lerr" id="login-err"></div>
+  </div>
+</div>
+<div class="topbar">
+  <img class="topbar-logo" src="" alt="Mata Villas" style="height:32px;object-fit:contain">
+  <span class="topbar-title"><span class="l-de">Kassen-Terminal</span><span class="l-en">Cashier Terminal</span><span class="l-id">Terminal Kasir</span></span>
+  <span style="font-size:8px;color:var(--text3);font-family:monospace">240826 1300</span>
+  <div class="topbar-right">
+    <button class="lb on" onclick="setLang('de')">DE</button>
+    <button class="lb" onclick="setLang('en')">EN</button>
+    <button class="lb" onclick="setLang('id')">ID</button>
+    <div class="more-menu">
+      <button class="logout-btn" onclick="toggleMoreMenu()" title="Mehr">⋮</button>
+      <div class="more-panel" id="more-panel">
+        <a href="tischplan.html" target="_blank" class="more-item"><span class="ic">🗺️</span><span class="l-de">Tischplan</span><span class="l-en">Table plan</span><span class="l-id">Denah meja</span></a>
+        <div class="more-item" onclick="closeMoreMenu();openCheckin()"><span class="ic">🏨</span><span class="l-de">Hotel</span><span class="l-en">Hotel</span><span class="l-id">Hotel</span></div>
+        <div class="more-item" onclick="closeMoreMenu();openCheckout()"><span class="ic">🧾</span><span class="l-de">Zimmerrechnung</span><span class="l-en">Room Folio</span><span class="l-id">Tagihan Kamar</span></div>
+        <div class="more-item" onclick="closeMoreMenu();openClosing()"><span class="ic">📋</span><span class="l-de">Tagesabschluss</span><span class="l-en">Daily closing</span><span class="l-id">Penutupan harian</span></div>
+      </div>
+    </div>
+    <span class="topbar-user" id="topbar-user"></span>
+    <button class="logout-btn" onclick="doLogout()">⏻</button>
+  </div>
+</div>
+<div class="layout">
+  <div class="bills-side">
+    <div class="bills-head" style="display:flex;flex-direction:column;gap:5px;padding:6px">
+      <div style="display:flex;gap:3px">
+        <button class="bmode-btn on" id="bmode-open" onclick="setBillsMode('open')" style="flex:1;border-radius:6px;border:1.5px solid var(--border);background:var(--accent);color:#fff;cursor:pointer;font-family:var(--font)"><span class="bm-ic">🧾</span><span class="l-de">Offen</span><span class="l-en">Open</span><span class="l-id">Terbuka</span></button>
+        <button class="bmode-btn" id="bmode-history" onclick="setBillsMode('history')" style="flex:1;border-radius:6px;border:1.5px solid var(--border);background:#fff;color:var(--text2);cursor:pointer;font-family:var(--font)"><span class="bm-ic">🕘</span><span class="l-de">Verlauf</span><span class="l-en">History</span><span class="l-id">Riwayat</span></button>
+      </div>
+    </div>
+    <div class="bills-list" id="bills-list"></div>
+  </div>
+  <div class="pay-side">
+    <div class="receipt" id="receipt">
+      <div class="receipt-empty"><span class="l-de">Rechnung wählen</span><span class="l-en">Select a bill</span><span class="l-id">Pilih tagihan</span></div>
+    </div>
+    <div class="paysec" id="paysec" style="display:none">
+      <div class="pay-label"><span class="l-de">Zahlungsart</span><span class="l-en">Payment method</span><span class="l-id">Metode pembayaran</span></div>
+      <div class="pay-methods">
+        <div class="pm" onclick="selPM('cash',this)"><div class="pm-icon">💵</div><div class="pm-label"><span class="l-de">Bar</span><span class="l-en">Cash</span><span class="l-id">Tunai</span></div></div>
+        <div class="pm" onclick="selPM('card',this)"><div class="pm-icon">💳</div><div class="pm-label"><span class="l-de">Karte</span><span class="l-en">Card</span><span class="l-id">Kartu</span></div></div>
+        <div class="pm" onclick="selPM('qr',this)"><div class="pm-icon">📱</div><div class="pm-label">QRIS</div></div>
+      </div>
+      <div class="cash-row" id="cash-row" style="display:none">
+        <span style="font-size:13px;white-space:nowrap"><span class="l-de">Gegeben Rp</span><span class="l-en">Cash given Rp</span><span class="l-id">Diterima Rp</span></span>
+        <input type="number" id="cash-given" placeholder="0">k
+        <span id="change-display" style="font-size:13px;color:var(--green);font-weight:600"></span>
+      </div>
+      <button class="confirm-btn" id="confirm-btn" onclick="confirmPay()" disabled>
+        <span class="l-de">Zahlung bestätigen</span><span class="l-en">Confirm payment</span><span class="l-id">Konfirmasi pembayaran</span>
+      </button>
+    </div>
+  </div>
+</div>
+<div class="paid-overlay" id="paid-overlay">
+  <div class="paid-box">
+    <div class="paid-icon">✅</div>
+    <div class="paid-msg" id="paid-msg">Bezahlt!</div>
+    <div class="paid-sub" id="paid-sub"></div>
+  </div>
+</div>
+<div class="paid-overlay" id="closing-overlay" style="background:rgba(26,32,44,.88)">
+  <div style="background:#fff;border-radius:16px;padding:24px;width:90%;max-width:420px;max-height:85vh;overflow-y:auto;color:var(--text);text-align:left">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <div style="font-size:17px;font-weight:800" id="closing-title">Tagesabschluss</div>
+      <button onclick="closeClosing()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--text3)">✕</button>
+    </div>
+    <input type="date" id="closing-date" onchange="loadClosingData()" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-family:var(--font);font-size:14px;margin-bottom:14px">
+    <div id="closing-summary" style="display:flex;flex-direction:column;gap:6px;margin-bottom:14px"></div>
+    <div id="closing-count-wrap" style="border-top:1.5px solid var(--border);padding-top:12px;margin-bottom:12px">
+      <label style="font-size:12px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:6px" id="closing-count-label">Bar-Bestand gezählt (Rp, in k)</label>
+      <input type="number" id="closing-counted" placeholder="0" oninput="updateClosingDiff()" style="width:100%;padding:9px 10px;border:1.5px solid var(--border);border-radius:8px;font-family:var(--font);font-size:15px">
+      <div id="closing-diff" style="margin-top:8px;font-size:13px;font-weight:700"></div>
+    </div>
+    <div id="closing-already" style="display:none;background:var(--orange-bg);color:var(--orange);padding:8px 12px;border-radius:8px;font-size:12px;font-weight:600;margin-bottom:10px"></div>
+    <button class="confirm-btn" id="closing-save-btn" onclick="saveClosing()">Tagesabschluss speichern</button>
+    <div style="margin-top:16px;border-top:1.5px solid var(--border);padding-top:12px">
+      <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px" id="closing-history-label">Letzte Abschlüsse</div>
+      <div id="closing-history"></div>
+    </div>
+  </div>
+</div>
+<div class="paid-overlay" id="checkin-overlay" style="background:rgba(26,32,44,.88)">
+  <div style="background:#fff;border-radius:16px;padding:24px;width:90%;max-width:420px;max-height:85vh;overflow-y:auto;color:var(--text);text-align:left">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <div style="font-size:17px;font-weight:800"><span class="l-de">Hotel</span><span class="l-en">Hotel</span><span class="l-id">Hotel</span></div>
+      <button onclick="closeCheckin()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--text3)">✕</button>
+    </div>
+    <div style="display:flex;gap:3px;margin-bottom:16px">
+      <button class="bmode-btn on" id="hmode-new" onclick="setHotelTab('new')" style="flex:1;border-radius:6px;border:1.5px solid var(--border);background:var(--accent);color:#fff;cursor:pointer;font-family:var(--font)"><span class="bm-ic">📝</span><span class="l-de">Neue Rechnung</span><span class="l-en">New invoice</span><span class="l-id">Faktur baru</span></button>
+      <button class="bmode-btn" id="hmode-open" onclick="setHotelTab('open')" style="flex:1;border-radius:6px;border:1.5px solid var(--border);background:#fff;color:var(--text2);cursor:pointer;font-family:var(--font)"><span class="bm-ic">🧾</span><span class="l-de">Offene Rechnungen</span><span class="l-en">Open invoices</span><span class="l-id">Faktur terbuka</span></button>
+    </div>
+
+    <div id="hotel-tab-new">
+      <label style="font-size:12px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:6px"><span class="l-de">Zimmer</span><span class="l-en">Room</span><span class="l-id">Kamar</span></label>
+      <div id="checkin-rooms" style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:14px"></div>
+      <label style="font-size:12px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:6px"><span class="l-de">Gast (optional)</span><span class="l-en">Guest (optional)</span><span class="l-id">Tamu (opsional)</span></label>
+      <input type="text" id="checkin-guest" style="width:100%;padding:9px 10px;border:1.5px solid var(--border);border-radius:8px;font-family:var(--font);font-size:14px;margin-bottom:14px">
+      <div style="display:flex;gap:10px;margin-bottom:14px">
+        <div style="flex:1">
+          <label style="font-size:12px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:6px"><span class="l-de">Von</span><span class="l-en">From</span><span class="l-id">Dari</span></label>
+          <input type="date" id="checkin-from" style="width:100%;padding:9px 10px;border:1.5px solid var(--border);border-radius:8px;font-family:var(--font);font-size:13px">
+        </div>
+        <div style="flex:1">
+          <label style="font-size:12px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:6px"><span class="l-de">Bis</span><span class="l-en">To</span><span class="l-id">Sampai</span></label>
+          <input type="date" id="checkin-to" style="width:100%;padding:9px 10px;border:1.5px solid var(--border);border-radius:8px;font-family:var(--font);font-size:13px">
+        </div>
+      </div>
+      <div id="checkin-nights-display" style="font-size:12px;color:var(--text3);margin-bottom:14px;margin-top:-8px"></div>
+      <div style="margin-bottom:16px">
+        <label style="font-size:12px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:6px"><span class="l-de">Betrag (Rp, in k)</span><span class="l-en">Amount (Rp, in k)</span><span class="l-id">Jumlah (Rp, k)</span></label>
+        <input type="number" step="0.1" id="checkin-amount" placeholder="0" style="width:100%;padding:9px 10px;border:1.5px solid var(--border);border-radius:8px;font-family:var(--font);font-size:14px">
+      </div>
+      <button class="confirm-btn" id="checkin-save-btn" onclick="saveHotelDraft()" disabled><span class="l-de">Rechnung speichern</span><span class="l-en">Save invoice</span><span class="l-id">Simpan faktur</span></button>
+    </div>
+
+    <div id="hotel-tab-open" style="display:none">
+      <div id="hotel-open-list"></div>
+      <div id="hotel-open-detail"></div>
+    </div>
+  </div>
+</div>
+<div class="paid-overlay" id="checkout-overlay" style="background:rgba(26,32,44,.88)">
+  <div style="background:#fff;border-radius:16px;padding:24px;width:90%;max-width:400px;max-height:85vh;overflow-y:auto;color:var(--text);text-align:left">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <div style="font-size:17px;font-weight:800"><span class="l-de">Zimmerrechnung</span><span class="l-en">Room Folio</span><span class="l-id">Tagihan Kamar</span></div>
+      <button onclick="closeCheckout()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--text3)">✕</button>
+    </div>
+    <label style="font-size:12px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:6px"><span class="l-de">Zimmer</span><span class="l-en">Room</span><span class="l-id">Kamar</span></label>
+    <div id="checkout-rooms" style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:16px"></div>
+    <div id="checkout-body"></div>
+  </div>
+</div>
+<div class="notif" id="notif"></div>
+<script>
+var SB='https://pxzdkyvndosikdmstnpp.supabase.co',KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB4emRreXZuZG9zaWtkbXN0bnBwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1NTIyNzQsImV4cCI6MjA5NTEyODI3NH0.QX1Iki-lguTfVsmyYWA9yPRtC8Qln-lMhSbCdMSdlYw';
+async function sbGet(table,q){var r=await fetch(SB+'/rest/v1/'+table+'?'+(q||''),{headers:{'apikey':KEY,'Authorization':'Bearer '+KEY}});if(!r.ok)throw new Error(r.status);return r.json();}
+async function sbPost(table,d){var r=await fetch(SB+'/rest/v1/'+table,{method:'POST',headers:{'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':'application/json','Prefer':'return=representation'},body:JSON.stringify(d)});if(!r.ok)throw new Error(r.status);return r.json();}
+
+var currentStaff=null;
+function logAction(action,details){
+  sbPost('audit_log',{staff_name:currentStaff?currentStaff.fname:null,staff_role:currentStaff?currentStaff.role:null,terminal:'Kasse',action:action,details:details||null}).catch(function(){});
+}
+async function sbPatch(table,filter,d){var r=await fetch(SB+'/rest/v1/'+table+'?'+filter,{method:'PATCH',headers:{'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':'application/json'},body:JSON.stringify(d)});if(!r.ok){var t='';try{t=await r.text();}catch(e){}throw new Error('DB-Fehler ('+r.status+'): '+t);}return r;}
+
+var lang='de';
+function setLang(l){lang=l;document.body.className=l;document.querySelectorAll('.lb').forEach(function(b,i){b.classList.toggle('on',['de','en','id'][i]===l);});if(typeof onLangChange==='function')onLangChange();}
+
+var staff=[];
+async function loadStaff(){
+  try{
+    var r=await fetch('https://pxzdkyvndosikdmstnpp.supabase.co/rest/v1/staff?active=eq.true&order=fname',{
+      headers:{'apikey':'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB4emRreXZuZG9zaWtkbXN0bnBwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1NTIyNzQsImV4cCI6MjA5NTEyODI3NH0.QX1Iki-lguTfVsmyYWA9yPRtC8Qln-lMhSbCdMSdlYw','Authorization':'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB4emRreXZuZG9zaWtkbXN0bnBwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1NTIyNzQsImV4cCI6MjA5NTEyODI3NH0.QX1Iki-lguTfVsmyYWA9yPRtC8Qln-lMhSbCdMSdlYw'}
+    });
+    if(!r.ok) throw new Error(r.status);
+    staff=await r.json();
+    buildSelect();autoLoginFromQuery();
+  }catch(e){console.warn('Staff load failed:',e);buildSelect();}
+}
+var LOGO='data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCABQAGMDASIAAhEBAxEB/8QAHAABAAIDAQEBAAAAAAAAAAAAAAMFAgQGAQcI/8QAOBAAAgEDAwEGAwUGBwAAAAAAAQIDAAQRBRIhMQYTQVFhcRSBkRUiMqGxB0JiosHRFjVyc5Ky8P/EABoBAAIDAQEAAAAAAAAAAAAAAAACAQMEBQb/xAAtEQABAwIDBQgDAQAAAAAAAAABAAIRAyEEEjETUWGh8CJBcYGRscHRBTLhFP/aAAwDAQACEQMRAD8A/P8ASlKEJSlert3jfnbnnHXFCFNZ2pu7lYe9ihB5aSVtqqPM1Zz6ZYC2MlpNdTgN3YmaMIkj+SDJY/8As4rdi1PspBCuNCuJZVHWW44Y+uP7V5NqkVxbnUp3hSVA0FjYQDCwjHLnyxn3J9q1tp0w25BPn/Fz3VqznghpA4xf0k+wA3qq0/T1uJwkyykt+FYiu5+M4GeCcEcePhXt/YWkcAubG9E0edrxSrsljPqviPUVb9zaj4W2uZzbJd20M9vc+EUqrs59Djk+HBr1df0m6Y/bmjJPdKcNcW77DIR4sBgE+tApMjKSAet30oNeoXZmgkbhHz8GQd4K5Wlb2qy6bNch9MtpreIjlJXD4Poa0ayuEGJlb2OzNBIhKUpUJkpSlCEpSlCErb0+wa/lmG8IkMLzOx8Ao/qcD51qVY6VKFS+tycNcWxRT6hlfHz2kfOnpgF11XVLgwluq24rSCDsfPeyoDPc3Kwwkj8KqNzH9BV32Z7Ex39gt9qLOElBMMSHGR4MT/SqOWXv+x9ui9ba8cOPR1BU/wArV9U0aeKbRLGaIju+4TGPDAwR9Qa6eDoU6tTtCwAXB/J4qvQonIYLnG+6NB5i65TTez0PaHsdZJNI0VzbmVIpByB948EeIrkLfSpftG70qdNt2FYIP41+9j5gED3FfTeyUZj7M2hIwZC8nyZyR+WK5W5Zbv8AanD8Pg7J4w5Hmqjd+hpq+HZs6T+8wPGyrwmMqitXpz2W5iOBB9iuMFu7WzTryiuFb0yOP0P0qKryBEFjr0wI7gBY0HmxlBXHyVqo65T25Y4/a9DTqZy7h9A/KUpSkVqUpShCUpShCUBIOQcGlKEKeG5eGKeIcpMgVhnyIIP5VZ6R2k1HS7aaygZXhmVlCP8AuMwxlfI1pWd7JE4VpI9nlNEJF+hBroba1M4S5h0Czv8AaQ26wuHUg+qZyPpWmiHEyx0HrdKxYp1MAiq2QfDXzgc1a9pu0N32eW30awRI9lsg748sOMceA6da43SdTl067muI0aSd4XjVupUsMbv1rt5o73Xrxbm57H5lVdu+5uWRQM56YGetVWr61qeiD4a0+ybPPBSwwzr7nwrXiA4u2hcQ0aWPzC5mDc0U9g1gLz+3aF/STyXH95IIzFuYIW3Fc8ZHGf1rCpbm6nvJ2muJXlkbqznJNRVzCu+NLpSlKhSlKUoQlKv7eFNW0aOyVEF9bo00DAAGVNx3IfMgDcPY1hepGOzdgkIQbrqYM/A3kBOSfLk4q7ZWzTaJWYYgZspF5j3M8uoVHSunTRLu60GS3TT5PibV1lSRY896H4Zdw4ODt/OsHlu4NFvZZtq3UV5CAQFO0bX4GOMcDj0qdgRruS/62mzYJmNd8Qea5uskkeNw8bsrDoVODV7okAu3lgnhU/aAaNZNoxG3VSPLLYHtmtPR7ldP1hBdLiFiYbhWHRW+63zHX5Uop/qZsU5rTmAEkc+rhasmo30ybZby4kXyaViP1rWqxuLeXSZb2BziQObfjxAOSfpj61exsf8AEVn050oE8Dr8OTn680wplxhxvMJHV202ywWgn0XI0re0b/PdP9biMHP+oVHqXOqXf+8//Y1Vl7OZX5+3k4StWldBb2nxGg3Nn3QE8Ci8R8DLcffX/iQcfwmsNPiiu9Phis76O01CORiySnYJs424fpkdMGrNibceoVRxIAJjQx/fBUVK2b9Z01CdbqIRThyJEChQrePA6UqoiDC0NMgFYSThooFRCjxqVLBvxZJPy64raXUk+Bs7WS2DpbzPKTvI37sZB8vwiq+prW4a1nEqqrEAjDdORTNcQUjqYI006+Vs6dqk1he9/gyo24SRMxCuGBBBx71it+E0uexEI2yzLKH3crtBAH8xrFb4qUPdqdiFMHkEGso9ReNoyscf3BjGOM7cZ/L60wdaJ6KQ0wTOXd37tFDNcb5kkiUxBAoUBs4wOuffn51Jqd6NR1CW77lYmlO51U5BbxPzPNQyTmQRAjiMEDnryT/Wp/tBt5YxIcyCTGP3hjOPfHNLNiJTZYIIFwvL/UJdQkieYKGjiWPI/ewMZPr0+lbi64y6hFd/DJmO1+GC7jgjZsz74NaHxb/Ed9gbtmz+XGfeslvnSPaqKD3fd7vHGc/3+tMHmZlKaTSA3LaI9dVJb30NrNBNFaL3kMyy7mcnOOg9s0e9t5J5ZXslZpH3nMhwPvZIHv0qJrwtGyGNPvKqk48uh98cVkt+6rbju0Pc9Mjrnrmozd08lOzvMX8VlZ6jJZaol+iKzK5Yo3Rgc5B9CCRR7yCSFI3s0xGTsZWIO0knafPGfeoZ7kzQwxlFURAgEePvUFRnIsDZTs2k5iL9famurqW8upLiYgyOcnFKhpSkyZKsAAEBf//Z';
+document.querySelectorAll('.login-logo,.topbar-logo').forEach(function(el){el.src=LOGO;});
+
+function buildSelect(){
+  var sel=document.getElementById('login-role');
+  if(!sel)return;
+  sel.innerHTML='<option value="">— Mitarbeiter —</option>';
+  staff.filter(function(s){return s.active;}).forEach(function(s){
+    var o=document.createElement('option');o.value=s.id;
+    o.textContent=s.fname+' '+(s.lname||'');sel.appendChild(o);
+  });
+}
+
+function initPins(){
+  var pins=document.querySelectorAll('.pin');
+  pins.forEach(function(el,i){
+    el.setAttribute('readonly','');
+    el.addEventListener('focus',function(){this.removeAttribute('readonly');this.value='';});
+    el.addEventListener('input',function(){
+      if(this.value&&i<pins.length-1)pins[i+1].focus();
+      else if(i===pins.length-1){if(Array.from(pins).every(function(p){return p.value;}))doLogin();}
+    });
+    el.addEventListener('keydown',function(e){if(e.key==='Backspace'&&!this.value&&i>0)pins[i-1].focus();});
+  });
+}
+
+function clearPins(){document.querySelectorAll('.pin').forEach(function(el){el.value='';el.setAttribute('readonly','');});}
+
+function autoLoginFromQuery(){
+  try{
+    var params=new URLSearchParams(location.search);
+    var sid=params.get('autostaff');
+    var pin=params.get('autopin');
+    if(!sid||!pin)return;
+    var sel=document.getElementById('login-role');
+    if(sel) sel.value=sid;
+    var pins=document.querySelectorAll('.pin');
+    for(var i=0;i<pins.length;i++){pins[i].removeAttribute('readonly');pins[i].value=pin[i]||'';}
+    doLogin();
+  }catch(e){console.warn('Auto-Login fehlgeschlagen:',e);}
+}
+function doLogin(){
+  var sid=document.getElementById('login-role').value;
+  var pin=Array.from(document.querySelectorAll('.pin')).map(function(p){return p.value;}).join('');
+  var m=staff.find(function(s){return String(s.id)===String(sid);});
+  if(!m){document.getElementById('login-err').textContent='Bitte Mitarbeiter wählen';return;}
+  if(m.pin===null||m.pin===undefined||m.pin===''){document.getElementById('login-err').textContent='Kein PIN hinterlegt — bitte Manager kontaktieren';clearPins();return;}
+  if(pin.length<4||String(m.pin).padStart(4,'0')!==pin){document.getElementById('login-err').textContent='Falscher PIN';clearPins();document.querySelectorAll('.pin')[0].focus();return;}
+  document.getElementById('login').classList.add('hidden');
+  var un=document.getElementById('topbar-user');if(un)un.textContent=m.fname;
+  if(typeof afterLogin==='function')afterLogin(m);
+}
+
+function doLogout(){
+  logAction('Abgemeldet','Kasse');
+  document.getElementById('login').classList.remove('hidden');
+  clearPins();
+  document.getElementById('login-err').textContent='';
+  if(typeof afterLogout==='function')afterLogout();
+}
+
+function notify(msg,dur){var el=document.getElementById('notif');if(!el)return;el.textContent=msg;el.classList.add('show');setTimeout(function(){el.classList.remove('show');},dur||2500);}
+
+function localDateStr(d){var y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),day=String(d.getDate()).padStart(2,'0');return y+'-'+m+'-'+day;}
+function localDayStart(dateStr){var p=dateStr.split('-');return new Date(+p[0],+p[1]-1,+p[2],0,0,0).toISOString();}
+function localDayEnd(dateStr){var p=dateStr.split('-');return new Date(+p[0],+p[1]-1,+p[2],23,59,59,999).toISOString();}
+
+var _closingCalc={cash:0,card:0,qr:0,total:0,count:0};
+var _closingExistingId=null;
+
+function closingL(){
+  return {
+    title:lang==='de'?'Tagesabschluss':lang==='en'?'Daily closing':'Penutupan harian',
+    countLabel:lang==='de'?'Bar-Bestand gezählt (Rp, in k)':lang==='en'?'Cash counted (Rp, in k)':'Uang tunai dihitung (Rp, ribuan)',
+    save:lang==='de'?'Tagesabschluss speichern':lang==='en'?'Save daily closing':'Simpan penutupan',
+    update:lang==='de'?'Tagesabschluss aktualisieren':lang==='en'?'Update daily closing':'Perbarui penutupan',
+    history:lang==='de'?'Letzte Abschlüsse':lang==='en'?'Recent closings':'Penutupan terakhir',
+    already:lang==='de'?'Für dieses Datum existiert bereits ein Abschluss. Speichern überschreibt ihn.':lang==='en'?'A closing already exists for this date. Saving will overwrite it.':'Penutupan untuk tanggal ini sudah ada. Menyimpan akan menimpanya.',
+    cash:lang==='de'?'Bar':lang==='en'?'Cash':'Tunai',
+    card:lang==='de'?'Karte':lang==='en'?'Card':'Kartu',
+    qr:'QRIS',
+    total:lang==='de'?'Gesamt':lang==='en'?'Total':'Total',
+    count:lang==='de'?'Transaktionen':lang==='en'?'Transactions':'Transaksi',
+    diffOver:lang==='de'?'Überschuss':lang==='en'?'Surplus':'Lebih',
+    diffUnder:lang==='de'?'Fehlbetrag':lang==='en'?'Shortfall':'Kurang',
+    diffOk:lang==='de'?'Stimmt genau':lang==='en'?'Matches exactly':'Sesuai persis',
+    noHistory:lang==='de'?'Noch keine Abschlüsse':lang==='en'?'No closings yet':'Belum ada penutupan',
+    restaurant:lang==='de'?'Restaurant':lang==='en'?'Restaurant':'Restoran',
+    minibar:'Minibar',
+    hotel:lang==='de'?'Hotel (Anreise)':lang==='en'?'Hotel (check-in)':'Hotel (check-in)',
+    byCategory:lang==='de'?'Nach Bereich':lang==='en'?'By category':'Menurut kategori',
+    byMethod:lang==='de'?'Nach Zahlungsart':lang==='en'?'By payment method':'Menurut metode pembayaran',
+    ofWhichHotel:lang==='de'?'davon Hotelgäste':lang==='en'?'of which hotel guests':'termasuk tamu hotel',
+    viaChannel:lang==='de'?'Über Channel eingezogen (nicht in Kassensumme)':lang==='en'?'Collected via channel (not in cash total)':'Dikumpulkan via channel (tidak termasuk kas)'
+  };
+}
+
+function openClosing(){
+  var L=closingL();
+  document.getElementById('closing-title').textContent=L.title;
+  document.getElementById('closing-count-label').textContent=L.countLabel;
+  document.getElementById('closing-history-label').textContent=L.history;
+  document.getElementById('closing-save-btn').textContent=L.save;
+  document.getElementById('closing-date').value=localDateStr(new Date());
+  document.getElementById('closing-counted').value='';
+  document.getElementById('closing-overlay').classList.add('show');
+  loadClosingData();
+  loadClosingHistory();
+}
+
+function closeClosing(){
+  document.getElementById('closing-overlay').classList.remove('show');
+}
+
+async function loadClosingData(){
+  var L=closingL();
+  var date=document.getElementById('closing-date').value;
+  if(!date)return;
+  try{
+    var sales=await sbGet('sales','select=total_k,payment_method,revenue_category,room_id&created_at=gte.'+localDayStart(date)+'&created_at=lte.'+localDayEnd(date));
+    var cash=sales.filter(function(s){return s.payment_method==='cash';}).reduce(function(a,s){return a+(s.total_k||0);},0);
+    var card=sales.filter(function(s){return s.payment_method==='card';}).reduce(function(a,s){return a+(s.total_k||0);},0);
+    var qr=sales.filter(function(s){return s.payment_method==='qr';}).reduce(function(a,s){return a+(s.total_k||0);},0);
+    var booking=sales.filter(function(s){return s.payment_method==='booking';}).reduce(function(a,s){return a+(s.total_k||0);},0);
+    var agoda=sales.filter(function(s){return s.payment_method==='agoda';}).reduce(function(a,s){return a+(s.total_k||0);},0);
+    var total=cash+card+qr;
+    var catOf=function(s){return s.revenue_category||'restaurant';};
+    var restAll=sales.filter(function(s){return catOf(s)==='restaurant';});
+    var restHotel=restAll.filter(function(s){return s.room_id;}).reduce(function(a,s){return a+(s.total_k||0);},0);
+    var restTotal=restAll.reduce(function(a,s){return a+(s.total_k||0);},0);
+    var miniTotal=sales.filter(function(s){return catOf(s)==='minibar';}).reduce(function(a,s){return a+(s.total_k||0);},0);
+    var hotelTotal=sales.filter(function(s){return catOf(s)==='hotel';}).reduce(function(a,s){return a+(s.total_k||0);},0);
+    _closingCalc={cash:cash,card:card,qr:qr,total:total,count:sales.length};
+    function row(label,val){return '<div style="display:flex;justify-content:space-between;font-size:13px"><span>'+label+'</span><span style="font-family:monospace">Rp '+val+'k</span></div>';}
+    function subrow(label,val){return '<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text3);padding-left:14px"><span>'+label+'</span><span style="font-family:monospace">Rp '+val+'k</span></div>';}
+    document.getElementById('closing-summary').innerHTML=
+      '<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;margin-top:2px">'+L.byCategory+'</div>'+
+      row('🍽️ '+L.restaurant,restTotal)+(restHotel>0?subrow('🏨 '+L.ofWhichHotel,restHotel):'')+
+      row('🏠 '+L.minibar,miniTotal)+row('🏨 '+L.hotel,hotelTotal)+
+      '<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;margin-top:8px;border-top:1px solid var(--border);padding-top:8px">'+L.byMethod+'</div>'+
+      row(L.cash,cash)+row(L.card,card)+row(L.qr,qr)+
+      '<div style="display:flex;justify-content:space-between;border-top:1.5px solid var(--border);padding-top:6px;margin-top:2px;font-weight:800;font-size:15px"><span>'+L.total+'</span><span>Rp '+total+'k</span></div>'+
+      ((booking>0||agoda>0)?('<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;margin-top:8px;border-top:1px solid var(--border);padding-top:8px">'+L.viaChannel+'</div>'+(booking>0?row('🅱️ Booking.com',booking):'')+(agoda>0?row('🅰️ Agoda',agoda):'')):'')+
+      '<div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text3)"><span>'+L.count+'</span><span>'+sales.length+'</span></div>';
+    var existing=await sbGet('cash_closings','select=*&closing_date=eq.'+date+'&order=created_at.desc&limit=1');
+    var box=document.getElementById('closing-already');
+    if(existing.length){
+      _closingExistingId=existing[0].id;
+      box.style.display='block';
+      box.textContent=L.already;
+      document.getElementById('closing-counted').value=existing[0].counted_cash!=null?existing[0].counted_cash:'';
+      document.getElementById('closing-save-btn').textContent=L.update;
+    }else{
+      _closingExistingId=null;
+      box.style.display='none';
+      document.getElementById('closing-save-btn').textContent=L.save;
+    }
+    updateClosingDiff();
+  }catch(e){notify('⚠ '+e.message);}
+}
+
+function updateClosingDiff(){
+  var L=closingL();
+  var counted=parseFloat(document.getElementById('closing-counted').value);
+  var el=document.getElementById('closing-diff');
+  if(isNaN(counted)){el.textContent='';return;}
+  var diff=counted-_closingCalc.cash;
+  if(diff===0){el.style.color='var(--green)';el.textContent='✓ '+L.diffOk;}
+  else if(diff>0){el.style.color='var(--green)';el.textContent='+ Rp '+diff+'k ('+L.diffOver+')';}
+  else{el.style.color='var(--red)';el.textContent='Rp '+diff+'k ('+L.diffUnder+')';}
+}
+
+async function saveClosing(){
+  var date=document.getElementById('closing-date').value;
+  var counted=parseFloat(document.getElementById('closing-counted').value);
+  var diff=isNaN(counted)?null:counted-_closingCalc.cash;
+  var closedBy=(document.getElementById('topbar-user')||{}).textContent||'';
+  var payload={
+    closing_date:date,total_cash:_closingCalc.cash,total_card:_closingCalc.card,total_qr:_closingCalc.qr,
+    total_all:_closingCalc.total,transaction_count:_closingCalc.count,
+    counted_cash:isNaN(counted)?null:counted,difference:diff,closed_by:closedBy
+  };
+  try{
+    if(_closingExistingId){
+      await sbPatch('cash_closings','id=eq.'+_closingExistingId,payload);
+    }else{
+      await sbPost('cash_closings',payload);
+    }
+    logAction('Kassenabschluss','Datum '+date+' · Bar Rp '+_closingCalc.cash+'k · Gesamt Rp '+_closingCalc.total+'k'+(diff!=null?' · Diff '+diff+'k':''));
+    notify('✓ '+closingL().save);
+    loadClosingData();loadClosingHistory();
+  }catch(e){notify('⚠ '+e.message);}
+}
+
+async function loadClosingHistory(){
+  var L=closingL();
+  try{
+    var rows=await sbGet('cash_closings','select=*&order=closing_date.desc&limit=14');
+    var el=document.getElementById('closing-history');
+    if(!rows.length){el.innerHTML='<div style="color:var(--text3);font-size:12px">'+L.noHistory+'</div>';return;}
+    el.innerHTML=rows.map(function(r){
+      var d=new Date(r.closing_date+'T00:00:00').toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'2-digit'});
+      var diffTxt=r.difference==null?'—':(r.difference===0?'✓':(r.difference>0?'+':'')+r.difference+'k');
+      var diffColor=r.difference==null?'var(--text3)':(r.difference===0?'var(--green)':(r.difference>0?'var(--green)':'var(--red)'));
+      return '<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);font-size:12px">'+
+        '<span>'+d+'</span><span>Rp '+r.total_all+'k</span><span style="color:'+diffColor+';font-weight:700">'+diffTxt+'</span></div>';
+    }).join('');
+  }catch(e){}
+}
+
+var BAR_CATS=['Cocktails','Premium Cocktails','Spanish Drinks','Drinks','Coffee','Tea','Soda','Fresh Juice','Beer','Wine'];
+var KITCHEN_CATS=['Breakfast','Tapas','Tabla de Tapas','Larger Plates','Dessert'];
+
+var bills=[],selBill=null,payMethod='cash',timer=null,billsMode='open';
+var checkinRoom=null,roomsList=[];
+function numVal(id){var v=document.getElementById(id).value||'';return parseFloat(v.replace(',','.'))||0;}
+
+function tw(){return lang==='de'?'Tisch ':lang==='en'?'Table ':'Meja ';}
+function toggleMoreMenu(){document.getElementById('more-panel').classList.toggle('show');}
+function closeMoreMenu(){document.getElementById('more-panel').classList.remove('show');}
+document.addEventListener('click',function(e){
+  if(!e.target.closest('.more-menu'))closeMoreMenu();
+});
+function billLabel(b){
+  if(b.order_type==='minibar'||b.order_type==='hotel')return b.room_name||'Zimmer';
+  return tw()+b.table_number;
+}
+function formatRp(k){var full=Math.round((k||0)*1000);return 'Rp '+full.toLocaleString('id-ID');}
+function onLangChange(){renderBills();if(selBill)renderReceipt(selBill);}
+
+function shareButtonsHtml(b){
+  var receiptUrl='https://matavillasverwaltung.netlify.app/rms/receipt.html?id='+b.id;
+  var qrImg='https://api.qrserver.com/v1/create-qr-code/?size=150x150&data='+encodeURIComponent(receiptUrl);
+  var lines;
+  if(b.order_type==='minibar'&&b.item_snapshot&&b.item_snapshot.length){
+    lines=b.item_snapshot.map(function(g){
+      var gLines=g.items.map(function(i){return i.quantity+'x '+i.name+' - '+formatRp(i.price_k*i.quantity);}).join('\n');
+      return g.date+':\n'+gLines;
+    }).join('\n');
+  }else{
+    var items=(b.order_items||[]).filter(function(i){return i.status!=='cancelled';});
+    lines=items.map(function(i){return i.quantity+'x '+i.name+' - '+formatRp(i.price_k*i.quantity);}).join('\n');
+  }
+  var stayLine=(b.order_type==='hotel'&&b.stay_from&&b.stay_to)?('Stay: '+b.stay_from+' to '+b.stay_to+'\n'):'';
+  var guestLine=(b.order_type==='hotel'&&b.guest_name)?('Guest: '+b.guest_name+'\n'):'';
+  var brandName=b.order_type==='hotel'?'Mata Villas':'Mata Tapas Bar';
+  var waText=brandName+' - Gili Trawangan\n'+billLabel(b)+'\n'+guestLine+stayLine+'\n'+(lines||'')+'\n\nTotal: '+formatRp(b.total_k)+'\n\n'+receiptUrl;
+  var waLink='https://wa.me/?text='+encodeURIComponent(waText);
+  return '<div style="display:flex;gap:10px;align-items:center;padding:14px 16px;border-top:1.5px solid var(--border);flex-wrap:wrap">'+
+    '<a href="'+waLink+'" target="_blank" style="flex:1;min-width:140px;text-decoration:none;background:#25D366;color:#fff;padding:10px;border-radius:8px;text-align:center;font-size:13px;font-weight:700">📱 WhatsApp</a>'+
+    '<div style="text-align:center"><img src="'+qrImg+'" style="width:70px;height:70px;border-radius:6px;border:1px solid var(--border)"><div style="font-size:9px;color:var(--text3);margin-top:2px">QR-Code</div></div>'+
+    '</div>';
+}
+
+function setBillsMode(m){
+  billsMode=m;
+  document.getElementById('bmode-open').style.background=m==='open'?'var(--accent)':'#fff';
+  document.getElementById('bmode-open').style.color=m==='open'?'#fff':'var(--text2)';
+  document.getElementById('bmode-history').style.background=m==='history'?'var(--accent)':'#fff';
+  document.getElementById('bmode-history').style.color=m==='history'?'#fff':'var(--text2)';
+  selBill=null;
+  document.getElementById('receipt').innerHTML='<div class="receipt-empty"><span class="l-de">Rechnung wählen</span><span class="l-en">Select a bill</span><span class="l-id">Pilih tagihan</span></div>';
+  document.getElementById('paysec').style.display='none';
+  loadBills();
+}
+
+async function showPaidReceipt(saleId){
+  billsMode='history';
+  document.getElementById('bmode-open').style.background='#fff';
+  document.getElementById('bmode-open').style.color='var(--text2)';
+  document.getElementById('bmode-history').style.background='var(--accent)';
+  document.getElementById('bmode-history').style.color='#fff';
+  document.getElementById('paysec').style.display='none';
+  await loadBills();
+  selectBill(saleId);
+}
+
+async function loadBills(){
+  if(billsMode==='history'){
+    try{
+      var sales=await sbGet('sales','select=id,table_number,room_id,revenue_category,total_k,payment_method,created_at,order_id,stay_from,stay_to,guest_name,item_snapshot,rooms(name)&order=created_at.desc&limit=50');
+      var oids=sales.map(function(s){return s.order_id;}).filter(function(x){return x!==null&&x!==undefined;});
+      var itemsByOrder={};
+      if(oids.length){
+        var items=await sbGet('order_items','select=order_id,name,quantity,price_k,category,status&order_id=in.('+oids.join(',')+')');
+        items.forEach(function(i){(itemsByOrder[i.order_id]=itemsByOrder[i.order_id]||[]).push(i);});
+      }
+      bills=sales.map(function(s){
+        return {id:s.id,table_number:s.table_number,room_id:s.room_id,room_name:s.rooms?s.rooms.name:null,
+          order_type:s.revenue_category==='minibar'?'minibar':(s.revenue_category==='hotel'?'hotel':'restaurant'),
+          stay_from:s.stay_from,stay_to:s.stay_to,guest_name:s.guest_name,item_snapshot:s.item_snapshot,
+          total_k:s.total_k,created_at:s.created_at,payment_method:s.payment_method,_paid:true,order_items:itemsByOrder[s.order_id]||[]};
+      });
+      renderBills();
+    }catch(e){notify('⚠ Verbindungsfehler');}
+    return;
+  }
+  try{
+    // Zeige alle noch nicht bezahlten RESTAURANT-Bestellungen — Minibar läuft separat über "Abreise"
+    var d=await sbGet('orders','select=id,table_number,room_id,order_type,total_k,status,kitchen_status,bar_status,created_at,order_items(id,name,quantity,price_k,category,status),rooms(name)&status=in.(new,cooking,making,ready)&order_type=eq.restaurant&room_id=is.null&order=created_at.asc');
+    bills=d.map(function(b){b.room_name=b.rooms?b.rooms.name:null;return b;});
+    renderBills();
+    if(selBill&&!bills.find(function(b){return b.id===selBill.id;})){
+      selBill=null;
+      document.getElementById('receipt').innerHTML='<div class="receipt-empty"><span class="l-de">Rechnung wählen</span><span class="l-en">Select a bill</span><span class="l-id">Pilih tagihan</span></div>';
+      document.getElementById('paysec').style.display='none';
+    }
+  }catch(e){notify('⚠ Verbindungsfehler');}
+}
+
+function getPendingWarn(b){
+  if(b.order_type==='minibar'||b.order_type==='hotel')return '';
+  var items=b.order_items||[];
+  var hasBar=items.some(function(i){return BAR_CATS.indexOf(i.category)>=0;});
+  var hasKitchen=items.some(function(i){return KITCHEN_CATS.indexOf(i.category)>=0;});
+  var warns=[];
+  if(hasKitchen&&b.kitchen_status!=='served') warns.push('⚠ Küche noch ausstehend');
+  if(hasBar&&b.bar_status!=='served') warns.push('⚠ Bar noch ausstehend');
+  return warns.join(' · ');
+}
+
+function renderBills(){
+  var list=document.getElementById('bills-list');
+  if(!bills.length){
+    var emptyHist='<span class="l-de">Kein Verlauf</span><span class="l-en">No history</span><span class="l-id">Tidak ada riwayat</span>';
+    var emptyOpen='<span class="l-de">Keine offenen Rechnungen</span><span class="l-en">No open bills</span><span class="l-id">Tidak ada tagihan</span>';
+    list.innerHTML='<div style="padding:20px;text-align:center;color:var(--text3);font-size:13px">'+(billsMode==='history'?emptyHist:emptyOpen)+'</div>';
+    document.body.className=lang;return;
+  }
+  list.innerHTML=bills.map(function(b){
+    var sel=selBill&&selBill.id===b.id;
+    var warn=billsMode==='history'?'':getPendingWarn(b);
+    return '<div class="bill-card'+(sel?' sel':'')+'" onclick="selectBill('+b.id+')" title="'+(warn?warn.replace(/"/g,'&quot;'):'')+'">'+
+      '<div class="bill-table">'+(b.order_type==='minibar'?'🏠 ':b.order_type==='hotel'?'🏨 ':(b.order_type==='restaurant'&&b.room_id)?'🏨 ':'')+billLabel(b)+'</div>'+
+      '<div class="bill-total">'+formatRp(b.total_k)+'</div>'+
+      (warn?'<div style="width:6px;height:6px;border-radius:50%;background:var(--orange)"></div>':'')+
+      '</div>';
+  }).join('');
+  document.body.className=lang;
+}
+
+function selectBill(id){
+  selBill=bills.find(function(b){return b.id===id;});
+  if(!selBill)return;
+  window._discountPercent=0;
+  window._discountReason=null;
+  renderBills();
+  renderReceipt(selBill);
+  if(billsMode==='history'){
+    document.getElementById('paysec').style.display='none';
+    return;
+  }
+  document.getElementById('paysec').style.display='block';
+  payMethod='cash';
+  document.querySelectorAll('.pm').forEach(function(el){el.classList.remove('sel');});
+  document.getElementById('cash-row').style.display='none';
+  document.getElementById('confirm-btn').disabled=true;
+}
+
+function renderReceipt(b){
+  var isHist=billsMode==='history';
+  var items=(b.order_items||[]).filter(function(i){return i.status!=='cancelled';});
+  var rows=items.map(function(i){
+    return '<div class="ritem" data-itemid="'+i.id+'"><span class="ritem-name">'+i.quantity+'x '+i.name+'</span>'+
+      '<span class="ritem-price">'+formatRp(i.price_k*i.quantity)+'</span>'+
+      (isHist?'':'<button class="ritem-del" onclick="removeBillItem('+b.id+','+i.id+')" title="Entfernen" style="background:none;border:none;color:#e74c3c;cursor:pointer;font-size:14px;margin-left:8px">&#10005;</button>')+'</div>';
+  }).join('');
+  var t=new Date(b.created_at).toLocaleString('de-DE',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+  var warn=isHist?'':getPendingWarn(b);
+  var subtotal=items.reduce(function(s,i){return s+(i.price_k*i.quantity);},0);
+  if(isHist){
+    var pmLabel={cash:'💵 '+(lang==='de'?'Bar':lang==='en'?'Cash':'Tunai'),card:'💳 '+(lang==='de'?'Karte':lang==='en'?'Card':'Kartu'),qr:'📱 QRIS',booking:'🅱️ Booking.com',agoda:'🅰️ Agoda'};
+    var brandName=b.order_type==='hotel'?'Mata Villas':'Mata Tapas Bar';
+    var phone='+62 853 5381 7651';
+    function drow(label,val){return '<tr><td>'+label+'</td><td>'+val+'</td></tr>';}
+    var detailRows='';
+    if(b.order_type==='hotel'){
+      if(b.guest_name)detailRows+=drow(lang==='de'?'Gast':'Guest',b.guest_name);
+      detailRows+=drow(lang==='de'?'Zimmer':'Room',billLabel(b));
+      if(b.stay_from)detailRows+=drow(lang==='de'?'Von':'From',b.stay_from);
+      if(b.stay_to)detailRows+=drow(lang==='de'?'Bis':'To',b.stay_to);
+      if(b.stay_from&&b.stay_to){
+        var nights=Math.round((new Date(b.stay_to)-new Date(b.stay_from))/86400000);
+        detailRows+=drow(lang==='de'?'Nächte':'Nights',nights);
+      }
+      detailRows+=drow(lang==='de'?'Preis':'Price',formatRp(b.total_k));
+    }else{
+      detailRows+=drow(b.order_type==='minibar'?(lang==='de'?'Zimmer':'Room'):(lang==='de'?'Tisch':'Table'),billLabel(b));
+      detailRows+=drow(lang==='de'?'Datum':'Date',t);
+    }
+    var itemsHtml;
+    if(b.order_type==='minibar'&&b.item_snapshot&&b.item_snapshot.length){
+      itemsHtml='<div class="sec-label">'+(lang==='de'?'Positionen':'Items')+'</div>'+
+        b.item_snapshot.map(function(g){
+          var gd=new Date(g.date+'T00:00:00').toLocaleDateString(lang==='de'?'de-DE':lang==='id'?'id-ID':'en-GB',{day:'2-digit',month:'2-digit',year:'numeric'});
+          var gRows=g.items.map(function(i){return '<div class="ritem"><span class="ritem-name">'+i.quantity+'x '+i.name+'</span><span class="ritem-price">'+formatRp(i.price_k*i.quantity)+'</span></div>';}).join('');
+          return '<div style="padding:6px 16px 2px;font-size:11px;font-weight:700;color:var(--text3)">📅 '+gd+'</div>'+gRows;
+        }).join('');
+    }else{
+      itemsHtml=rows?('<div class="sec-label">'+(lang==='de'?'Positionen':'Items')+'</div>'+rows):'';
+    }
+    document.getElementById('receipt').innerHTML=
+      '<div class="receipt-head"><div class="receipt-logo">'+brandName+'</div><div class="receipt-sub">Gili Trawangan</div><div class="receipt-sub">'+phone+'</div></div>'+
+      '<div style="background:var(--green-bg);color:var(--green);padding:8px 16px;font-size:12px;font-weight:600">✓ '+(lang==='de'?'Bezahlt':lang==='en'?'Paid':'Dibayar')+' · '+(pmLabel[b.payment_method]||b.payment_method||'—')+'</div>'+
+      '<table class="drow-table"><tbody>'+detailRows+'</tbody></table>'+
+      itemsHtml+
+      '<div class="rtotal" style="font-size:18px;font-weight:800;border-top:2px solid #333;padding-top:8px;margin-top:6px"><span>Total</span><span>'+formatRp(b.total_k||subtotal)+'</span></div>'+
+      shareButtonsHtml(b);
+    document.body.className=lang;
+    return;
+  }
+  var discount=window._discountPercent||0;
+  var discountAmt=Math.round(subtotal*discount/100);
+  var finalTotal=subtotal-discountAmt;
+  b._displayTotal=finalTotal;
+  document.getElementById('receipt').innerHTML=
+    '<div class="receipt-head"><div class="receipt-logo">Mata Tapas Bar</div><div class="receipt-sub">Gili Trawangan</div><div class="receipt-sub">+62 853 5381 7651</div></div>'+
+    '<table class="drow-table"><tbody>'+
+      '<tr><td>'+(lang==='de'?'Tisch':lang==='en'?'Table':'Meja')+'</td><td>'+billLabel(b)+'</td></tr>'+
+      '<tr><td>'+(lang==='de'?'Datum':lang==='en'?'Date':'Tanggal')+'</td><td>'+t+'</td></tr>'+
+    '</tbody></table>'+
+    (warn?'<div class="receipt-warn">'+warn+'</div>':'')+
+    (rows?('<div class="sec-label">'+(lang==='de'?'Positionen':lang==='en'?'Items':'Item')+'</div>'+rows):'')+
+    '<div class="rtotal" style="border-top:1px solid #eee;padding-top:6px;margin-top:6px"><span>Subtotal</span><span>'+formatRp(subtotal)+'</span></div>'+
+    '<div class="discount-row" style="display:flex;align-items:center;gap:8px;margin:8px 0;padding:8px;background:#f5f2ed;border-radius:8px;flex-wrap:wrap">'+
+      '<span style="font-size:13px;color:#888">Rabatt:</span>'+
+      '<button class="disc-btn" onclick="setDiscount(0)" style="padding:4px 10px;border-radius:6px;border:1px solid '+(discount===0?'#3182ce':'#ddd')+';background:'+(discount===0?'#ebf8ff':'#fff')+';font-size:12px;cursor:pointer">0%</button>'+
+      '<button class="disc-btn" onclick="setDiscount(10)" style="padding:4px 10px;border-radius:6px;border:1px solid '+(discount===10?'#3182ce':'#ddd')+';background:'+(discount===10?'#ebf8ff':'#fff')+';font-size:12px;cursor:pointer">10%</button>'+
+      '<button class="disc-btn" onclick="setDiscount(20)" style="padding:4px 10px;border-radius:6px;border:1px solid '+(discount===20?'#3182ce':'#ddd')+';background:'+(discount===20?'#ebf8ff':'#fff')+';font-size:12px;cursor:pointer">20%</button>'+
+      '<input type="number" id="disc-custom" placeholder="%" min="0" max="100" style="width:50px;padding:4px 6px;border:1px solid #ddd;border-radius:6px;font-size:12px" onchange="setDiscount(parseInt(this.value)||0)">'+
+      (discount>0?'<select id="disc-reason" onchange="window._discountReason=this.value" style="padding:4px 8px;border:1px solid #ddd;border-radius:6px;font-size:12px">'+
+        '<option value="Promotion"'+((window._discountReason||'Promotion')==='Promotion'?' selected':'')+'>Promotion</option>'+
+        '<option value="Einheimischer"'+(window._discountReason==='Einheimischer'?' selected':'')+'>Einheimischer</option>'+
+        '<option value="Mitarbeiter"'+(window._discountReason==='Mitarbeiter'?' selected':'')+'>Mitarbeiter</option>'+
+        '<option value="Stammkunde"'+(window._discountReason==='Stammkunde'?' selected':'')+'>Stammkunde</option>'+
+        '<option value="Sonstiges"'+(window._discountReason==='Sonstiges'?' selected':'')+'>Sonstiges</option>'+
+      '</select>':'')+
+    '</div>'+
+    (discount>0?'<div class="rtotal" style="color:#e67e22"><span>Rabatt ('+discount+'%)</span><span>-Rp '+discountAmt+'k</span></div>':'')+
+    '<div class="rtotal" style="font-size:18px;font-weight:800;border-top:2px solid #333;padding-top:8px;margin-top:6px"><span>Total</span><span>'+formatRp(finalTotal)+'</span></div>'+
+    '<div style="padding:10px 16px 16px"><button onclick="voidWholeOrder('+b.id+')" style="width:100%;padding:9px;border-radius:8px;border:1.5px solid var(--red-bd);background:var(--red-bg);color:var(--red);font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font)">🗑 '+(lang==='de'?'Ganze Bestellung stornieren':lang==='en'?'Cancel entire order':'Batalkan seluruh pesanan')+'</button></div>';
+  document.body.className=lang;
+}
+
+window._discountPercent=0;
+function setDiscount(pct){
+  window._discountPercent=Math.max(0,Math.min(100,pct));
+  if(window._discountPercent>0 && !window._discountReason) window._discountReason='Promotion';
+  if(window._discountPercent===0) window._discountReason=null;
+  if(selBill) renderReceipt(selBill);
+}
+
+async function voidWholeOrder(billId){
+  var confirmMsg=lang==='de'?'Diese komplette Bestellung wirklich stornieren? Das kann nicht rückgängig gemacht werden.':lang==='en'?'Really cancel this entire order? This cannot be undone.':'Batalkan seluruh pesanan ini? Tidak bisa dibatalkan.';
+  if(!confirm(confirmMsg))return;
+  try{
+    await sbPatch('order_items','order_id=eq.'+billId,{status:'cancelled'});
+    await sbPatch('orders','id=eq.'+billId,{status:'cancelled',total_k:0});
+    logAction('Bestellung storniert',billLabel(selBill)+' · #'+billId);
+    bills=bills.filter(function(b){return b.id!==billId;});
+    selBill=null;
+    renderBills();
+    document.getElementById('receipt').innerHTML='<div class="receipt-empty"><span class="l-de">Rechnung wählen</span><span class="l-en">Select a bill</span><span class="l-id">Pilih tagihan</span></div>';
+    document.getElementById('paysec').style.display='none';
+    notify('✓ '+(lang==='de'?'Bestellung storniert':lang==='en'?'Order cancelled':'Pesanan dibatalkan'));
+  }catch(e){notify('⚠ Fehler: '+e.message);}
+}
+
+async function removeBillItem(billId,itemId){
+  if(!confirm(lang==='de'?'Position entfernen?':'Remove item?')) return;
+  try{
+    var item=selBill.order_items.find(function(i){return i.id===itemId;});
+    await sbPatch('order_items','id=eq.'+itemId,{status:'cancelled'});
+    if(item) item.status='cancelled';
+    var newTotal=selBill.order_items.filter(function(i){return i.status!=='cancelled';}).reduce(function(s,i){return s+(i.price_k*i.quantity);},0);
+    selBill.total_k=newTotal;
+    await sbPatch('orders','id=eq.'+billId,{total_k:newTotal});
+    logAction('Artikel entfernt',billLabel(selBill)+' · '+(item?item.name:'#'+itemId));
+    renderReceipt(selBill);
+    renderBills();
+    notify('\u2713 '+(lang==='de'?'Position entfernt':'Item removed'));
+  }catch(e){notify('\u26a0 '+e.message);}
+}
+
+function selPM(pm,el){
+  payMethod=pm;
+  document.querySelectorAll('.pm').forEach(function(b){b.classList.remove('sel');});
+  el.classList.add('sel');
+  var cashRow=document.getElementById('cash-row');
+  cashRow.style.display=pm==='cash'?'flex':'none';
+  document.getElementById('confirm-btn').disabled=false;
+  if(pm==='cash'){document.getElementById('cash-given').value='';document.getElementById('change-display').textContent='';}
+}
+
+document.getElementById('cash-given').addEventListener('input',function(){
+  if(!selBill)return;
+  var given=parseFloat(this.value)||0;
+  var finalTotal=selBill._displayTotal!==undefined?selBill._displayTotal:selBill.total_k;
+  var change=given-finalTotal;
+  var el=document.getElementById('change-display');
+  if(given>0){el.textContent=(change>=0?'Wechselgeld: '+formatRp(change):'⚠ Zu wenig');el.style.color=change>=0?'var(--green)':'var(--red)';}
+  else{el.textContent='';}
+  document.getElementById('confirm-btn').disabled=change<0;
+});
+
+async function confirmPay(){
+  if(!selBill)return;
+  var discount=window._discountPercent||0;
+  var finalTotal=selBill._displayTotal!==undefined?selBill._displayTotal:selBill.total_k;
+  if(payMethod==='cash'){
+    var given=parseFloat(document.getElementById('cash-given').value)||0;
+    if(given<finalTotal){notify('⚠ Betrag zu niedrig');return;}
+  }
+  var bid=selBill.id;
+  var total=finalTotal;
+  var isMinibar=selBill.order_type==='minibar';
+  var label=billLabel(selBill);
+  try{
+    await sbPatch('orders','id=eq.'+bid,{status:'paid',payment_method:payMethod,paid_at:new Date().toISOString(),total_k:total});
+    var salePayload=isMinibar
+      ?{order_id:bid,room_id:selBill.room_id,total_k:total,payment_method:payMethod,revenue_category:'minibar',discount_percent:discount,discount_reason:discount>0?(window._discountReason||'Rabatt'):null}
+      :{order_id:bid,table_number:selBill.table_number,total_k:total,payment_method:payMethod,revenue_category:'restaurant',discount_percent:discount,discount_reason:discount>0?(window._discountReason||'Rabatt'):null};
+    var saleId=null;
+    try{var saleRes=await sbPost('sales',salePayload);saleId=saleRes[0].id;}catch(e){}
+    logAction('Zahlung bestätigt',label+' · '+payMethod+' · Rp '+total+'k'+(discount>0?' · Rabatt '+discount+'%':''));
+    window._discountPercent=0;
+    bills=bills.filter(function(b){return b.id!==bid;});
+    selBill=null;
+    renderBills();
+    var ol=document.getElementById('paid-overlay');
+    var msgs={de:'Bezahlt!',en:'Paid!',id:'Dibayar!'};
+    document.getElementById('paid-msg').textContent=msgs[lang]||'Bezahlt!';
+    document.getElementById('paid-sub').textContent=label+' · '+formatRp(total);
+    ol.classList.add('show');
+    setTimeout(function(){
+      ol.classList.remove('show');
+      if(saleId)showPaidReceipt(saleId);
+    },1800);
+  }catch(e){notify('⚠ Fehler: '+e.message);}
+}
+
+function afterLogin(m){currentStaff=m;setLang(m.preferred_lang||'de');logAction('Angemeldet','Kasse');loadBills();timer=setInterval(loadBills,8000);}
+function afterLogout(){if(timer)clearInterval(timer);bills=[];selBill=null;}
+
+async function openCheckin(){
+  document.getElementById('checkin-overlay').classList.add('show');
+  setHotelTab('new');
+  resetHotelDraftForm();
+  if(!roomsList.length){
+    try{roomsList=await sbGet('rooms','active=eq.true&order=sort_order&select=id,name');}catch(e){roomsList=[];}
+  }
+  document.getElementById('checkin-rooms').innerHTML=roomsList.map(function(r){
+    return '<div class="pm" style="padding:9px 4px" onclick="selCheckinRoom('+r.id+',this)"><div class="pm-label" style="font-size:11px">'+r.name+'</div></div>';
+  }).join('');
+}
+function closeCheckin(){document.getElementById('checkin-overlay').classList.remove('show');}
+
+function resetHotelDraftForm(){
+  checkinRoom=null;
+  document.getElementById('checkin-guest').value='';
+  document.getElementById('checkin-from').value=localDateStr(new Date());
+  document.getElementById('checkin-to').value='';
+  document.getElementById('checkin-amount').value='';
+  document.getElementById('checkin-nights-display').textContent='';
+  document.querySelectorAll('#checkin-rooms .pm').forEach(function(el){el.classList.remove('sel');});
+  document.getElementById('checkin-save-btn').disabled=true;
+}
+
+function setHotelTab(tab){
+  document.getElementById('hotel-tab-new').style.display=tab==='new'?'block':'none';
+  document.getElementById('hotel-tab-open').style.display=tab==='open'?'block':'none';
+  document.getElementById('hmode-new').style.background=tab==='new'?'var(--accent)':'#fff';
+  document.getElementById('hmode-new').style.color=tab==='new'?'#fff':'var(--text2)';
+  document.getElementById('hmode-open').style.background=tab==='open'?'var(--accent)':'#fff';
+  document.getElementById('hmode-open').style.color=tab==='open'?'#fff':'var(--text2)';
+  if(tab==='open')loadOpenHotelInvoices();
+}
+
+function selCheckinRoom(id,el){
+  checkinRoom=roomsList.find(function(r){return r.id===id;});
+  document.querySelectorAll('#checkin-rooms .pm').forEach(function(b){b.classList.remove('sel');});
+  el.classList.add('sel');
+  updateHotelDraftBtn();
+}
+function calcCheckinNights(){
+  var from=document.getElementById('checkin-from').value;
+  var to=document.getElementById('checkin-to').value;
+  var disp=document.getElementById('checkin-nights-display');
+  if(!from||!to){disp.textContent='';return null;}
+  var d1=new Date(from),d2=new Date(to);
+  var nights=Math.round((d2-d1)/86400000);
+  if(nights<=0){disp.textContent='⚠ "Bis" muss nach "Von" liegen';disp.style.color='var(--red)';return null;}
+  disp.style.color='var(--text3)';
+  disp.textContent=nights+' '+(lang==='de'?'Nacht/Nächte':lang==='en'?'night(s)':'malam');
+  return nights;
+}
+document.getElementById('checkin-from').addEventListener('change',function(){calcCheckinNights();updateHotelDraftBtn();});
+document.getElementById('checkin-to').addEventListener('change',function(){calcCheckinNights();updateHotelDraftBtn();});
+function updateHotelDraftBtn(){
+  var amt=numVal('checkin-amount');
+  document.getElementById('checkin-save-btn').disabled=!(checkinRoom&&amt>0);
+}
+document.getElementById('checkin-amount').addEventListener('input',updateHotelDraftBtn);
+
+async function saveHotelDraft(){
+  var amt=numVal('checkin-amount');
+  var from=document.getElementById('checkin-from').value||null;
+  var to=document.getElementById('checkin-to').value||null;
+  var nights=calcCheckinNights();
+  var guest=document.getElementById('checkin-guest').value||null;
+  if(!checkinRoom||amt<=0)return;
+  if(amt>=10000){
+    var suggested=Math.round(amt/1000);
+    var msg=(lang==='de'?'⚠ Rp '+amt+'k ist ungewöhnlich hoch — meinst du vielleicht Rp '+suggested+'k? OK = trotzdem Rp '+amt+'k, Abbrechen = Betrag korrigieren.':'⚠ Rp '+amt+'k is unusually high — did you mean Rp '+suggested+'k? OK = keep it, Cancel = fix the amount.');
+    if(!confirm(msg))return;
+  }
+  try{
+    await sbPost('hotel_charges',{room_id:checkinRoom.id,guest_name:guest,checkin_date:from,checkout_date:to,nights:nights,amount_k:amt,status:'open',employee_id:currentStaff?currentStaff.id:null});
+    logAction('Hotelrechnung vorbereitet',checkinRoom.name+(guest?' · '+guest:'')+(from&&to?' · '+from+' bis '+to:'')+' · Rp '+amt+'k');
+    notify('✓ '+(lang==='de'?'Rechnung gespeichert':'Invoice saved')+' · '+checkinRoom.name);
+    resetHotelDraftForm();
+    setHotelTab('open');
+  }catch(e){notify('⚠ Fehler: '+e.message);}
+}
+
+var hotelInvoices=[],selHotelInvoice=null,hotelInvoicePM=null;
+
+async function loadOpenHotelInvoices(){
+  var list=document.getElementById('hotel-open-list');
+  document.getElementById('hotel-open-detail').innerHTML='';
+  selHotelInvoice=null;hotelInvoicePM=null;
+  list.innerHTML='<div style="padding:16px;text-align:center;color:var(--text3);font-size:13px">Lädt…</div>';
+  try{
+    hotelInvoices=await sbGet('hotel_charges','select=*,rooms(name)&status=eq.open&order=created_at.desc');
+    if(!hotelInvoices.length){
+      list.innerHTML='<div style="padding:16px;text-align:center;color:var(--text3);font-size:13px"><span class="l-de">Keine offenen Hotelrechnungen</span><span class="l-en">No open hotel invoices</span><span class="l-id">Tidak ada faktur terbuka</span></div>';
+      document.body.className=lang;
+      return;
+    }
+    list.innerHTML=hotelInvoices.map(function(h){
+      var room=h.rooms?h.rooms.name:'—';
+      var period=(h.checkin_date&&h.checkout_date)?(h.checkin_date+' → '+h.checkout_date):'';
+      return '<div class="bill-card" style="flex-direction:row;justify-content:space-between;align-items:center;text-align:left;cursor:pointer" onclick="selectHotelInvoice('+h.id+')">'+
+        '<div><div style="font-weight:700;font-size:13px">🏨 '+room+(h.guest_name?' · '+h.guest_name:'')+'</div>'+
+        '<div style="font-size:11px;color:var(--text3)">'+period+'</div></div>'+
+        '<div style="font-weight:700;color:var(--accent);white-space:nowrap;margin-left:8px">'+formatRp(h.amount_k)+'</div>'+
+        '</div>';
+    }).join('');
+    document.body.className=lang;
+  }catch(e){list.innerHTML='<div style="padding:16px;text-align:center;color:var(--red);font-size:13px">⚠ Fehler</div>';}
+}
+
+function selectHotelInvoice(id){
+  selHotelInvoice=hotelInvoices.find(function(h){return h.id===id;});
+  hotelInvoicePM=null;
+  if(!selHotelInvoice)return;
+  var room=selHotelInvoice.rooms?selHotelInvoice.rooms.name:'—';
+  var detail=document.getElementById('hotel-open-detail');
+  detail.innerHTML=
+    '<div style="border-top:1.5px solid var(--border);margin-top:12px;padding-top:14px">'+
+    '<table class="drow-table" style="margin-bottom:14px;border:1px solid var(--border);border-radius:8px;overflow:hidden">'+
+      (selHotelInvoice.guest_name?('<tr><td>'+(lang==='de'?'Gast':'Guest')+'</td><td>'+selHotelInvoice.guest_name+'</td></tr>'):'')+
+      '<tr><td>'+(lang==='de'?'Zimmer':'Room')+'</td><td>'+room+'</td></tr>'+
+      (selHotelInvoice.checkin_date?('<tr><td>'+(lang==='de'?'Von':'From')+'</td><td>'+selHotelInvoice.checkin_date+'</td></tr>'):'')+
+      (selHotelInvoice.checkout_date?('<tr><td>'+(lang==='de'?'Bis':'To')+'</td><td>'+selHotelInvoice.checkout_date+'</td></tr>'):'')+
+      (selHotelInvoice.nights?('<tr><td>'+(lang==='de'?'Nächte':'Nights')+'</td><td>'+selHotelInvoice.nights+'</td></tr>'):'')+
+      '<tr><td>'+(lang==='de'?'Betrag':'Amount')+'</td><td>'+formatRp(selHotelInvoice.amount_k)+'</td></tr>'+
+    '</table>'+
+    '<div class="pay-label"><span class="l-de">Zahlungsart</span><span class="l-en">Payment method</span><span class="l-id">Metode pembayaran</span></div>'+
+    '<div class="pay-methods" style="margin-bottom:14px">'+
+      '<div class="pm" id="hinv-pm-cash" onclick="selHotelInvoicePM(\'cash\')"><div class="pm-icon">💵</div><div class="pm-label"><span class="l-de">Bar</span><span class="l-en">Cash</span><span class="l-id">Tunai</span></div></div>'+
+      '<div class="pm" id="hinv-pm-card" onclick="selHotelInvoicePM(\'card\')"><div class="pm-icon">💳</div><div class="pm-label"><span class="l-de">Karte</span><span class="l-en">Card</span><span class="l-id">Kartu</span></div></div>'+
+      '<div class="pm" id="hinv-pm-qr" onclick="selHotelInvoicePM(\'qr\')"><div class="pm-icon">📱</div><div class="pm-label">QRIS</div></div>'+
+      '<div class="pm" id="hinv-pm-booking" onclick="selHotelInvoicePM(\'booking\')"><div class="pm-icon">🅱️</div><div class="pm-label">Booking.com</div></div>'+
+      '<div class="pm" id="hinv-pm-agoda" onclick="selHotelInvoicePM(\'agoda\')"><div class="pm-icon">🅰️</div><div class="pm-label">Agoda</div></div>'+
+    '</div>'+
+    '<button class="confirm-btn" id="hinv-confirm-btn" onclick="confirmHotelInvoicePayment()" disabled><span class="l-de">Jetzt kassieren</span><span class="l-en">Charge now</span><span class="l-id">Bayar sekarang</span></button>'+
+    '</div>';
+  document.body.className=lang;
+}
+
+function selHotelInvoicePM(pm){
+  hotelInvoicePM=pm;
+  document.querySelectorAll('#hotel-open-detail .pm').forEach(function(b){b.classList.remove('sel');});
+  document.getElementById('hinv-pm-'+pm).classList.add('sel');
+  document.getElementById('hinv-confirm-btn').disabled=false;
+}
+
+async function confirmHotelInvoicePayment(){
+  if(!selHotelInvoice||!hotelInvoicePM)return;
+  var h=selHotelInvoice;
+  try{
+    await sbPatch('hotel_charges','id=eq.'+h.id,{status:'paid',payment_method:hotelInvoicePM,paid_at:new Date().toISOString()});
+    var saleId=null;
+    try{
+      var saleRes=await sbPost('sales',{room_id:h.room_id,total_k:h.amount_k,payment_method:hotelInvoicePM,revenue_category:'hotel',stay_from:h.checkin_date,stay_to:h.checkout_date,guest_name:h.guest_name,hotel_charge_id:h.id});
+      saleId=saleRes[0].id;
+    }catch(e){}
+    var roomName=h.rooms?h.rooms.name:'—';
+    logAction('Hotelrechnung kassiert',roomName+(h.guest_name?' · '+h.guest_name:'')+' · Rp '+h.amount_k+'k · '+hotelInvoicePM);
+    closeCheckin();
+    notify('✓ '+roomName+' · '+formatRp(h.amount_k));
+    if(saleId)showPaidReceipt(saleId);
+  }catch(e){notify('⚠ Fehler: '+e.message);}
+}
+
+var checkoutRoom=null,checkoutOrders=[],checkoutPM=null,checkoutDiscount=0,checkoutReason=null,checkoutDiscountOpen=false;
+
+async function openCheckout(){
+  document.getElementById('checkout-overlay').classList.add('show');
+  checkoutRoom=null;checkoutOrders=[];checkoutPM=null;checkoutDiscount=0;checkoutReason=null;checkoutDiscountOpen=false;
+  document.getElementById('checkout-body').innerHTML='';
+  if(!roomsList.length){
+    try{roomsList=await sbGet('rooms','active=eq.true&order=sort_order&select=id,name');}catch(e){roomsList=[];}
+  }
+  document.getElementById('checkout-rooms').innerHTML=roomsList.map(function(r){
+    return '<div class="pm" style="padding:9px 4px" onclick="selCheckoutRoom('+r.id+',this)"><div class="pm-label" style="font-size:11px">'+r.name+'</div></div>';
+  }).join('');
+}
+function closeCheckout(){document.getElementById('checkout-overlay').classList.remove('show');}
+
+async function selCheckoutRoom(id,el){
+  checkoutRoom=roomsList.find(function(r){return r.id===id;});
+  document.querySelectorAll('#checkout-rooms .pm').forEach(function(b){b.classList.remove('sel');});
+  el.classList.add('sel');
+  checkoutPM=null;checkoutDiscount=0;checkoutReason=null;checkoutDiscountOpen=false;
+  var body=document.getElementById('checkout-body');
+  body.innerHTML='<div style="padding:20px;text-align:center;color:var(--text3);font-size:13px">Lädt…</div>';
+  try{
+    var orders=await sbGet('orders','select=id,table_number,order_type,total_k,created_at,order_items(id,name,quantity,price_k,status)&room_id=eq.'+id+'&order_type=in.(minibar,restaurant)&status=in.(new,cooking,making,ready)&order=created_at.asc');
+    checkoutOrders=orders;
+    renderCheckoutBody();
+  }catch(e){body.innerHTML='<div style="padding:20px;text-align:center;color:var(--red);font-size:13px">⚠ Fehler beim Laden</div>';}
+}
+
+async function removeCheckoutItem(orderId,itemId){
+  var confirmMsg=lang==='de'?'Diese Position wirklich entfernen? Das kann nicht rückgängig gemacht werden.':lang==='en'?'Really remove this item? This cannot be undone.':'Hapus item ini? Tidak bisa dibatalkan.';
+  if(!confirm(confirmMsg))return;
+  var o=checkoutOrders.find(function(x){return x.id===orderId;});
+  if(!o)return;
+  var item=(o.order_items||[]).find(function(i){return i.id===itemId;});
+  try{
+    await sbPatch('order_items','id=eq.'+itemId,{status:'cancelled'});
+    if(item)item.status='cancelled';
+    var remaining=(o.order_items||[]).filter(function(i){return i.status!=='cancelled';});
+    var newOrderTotal=remaining.reduce(function(s,i){return s+i.price_k*i.quantity;},0);
+    await sbPatch('orders','id=eq.'+orderId,{total_k:newOrderTotal});
+    logAction('Position entfernt (Abreise)',(checkoutRoom?checkoutRoom.name:'')+' · '+(item?item.name:'#'+itemId));
+    notify('✓ '+(lang==='de'?'Position entfernt':'Item removed'));
+    renderCheckoutBody();
+  }catch(e){notify('⚠ Fehler: '+e.message);}
+}
+
+function renderCheckoutBody(){
+  var body=document.getElementById('checkout-body');
+  if(!checkoutOrders.length){
+    body.innerHTML='<div style="padding:20px;text-align:center;color:var(--text3);font-size:13px"><span class="l-de">Keine offenen Posten für dieses Zimmer</span><span class="l-en">No open items for this room</span><span class="l-id">Tidak ada item terbuka</span></div>';
+    return;
+  }
+  var allItems=[];
+  checkoutOrders.forEach(function(o){(o.order_items||[]).forEach(function(i){if(i.status!=='cancelled')allItems.push(i);});});
+  var subtotal=allItems.reduce(function(s,i){return s+i.price_k*i.quantity;},0);
+  var discountAmt=Math.round(subtotal*checkoutDiscount/100);
+  var finalTotal=subtotal-discountAmt;
+  var restaurantLabel=lang==='de'?'Restaurant':lang==='en'?'Restaurant':'Restoran';
+  var minibarLabel='Minibar';
+  var groupsHtml=checkoutOrders.map(function(o){
+    var items=(o.order_items||[]).filter(function(i){return i.status!=='cancelled';});
+    if(!items.length)return '';
+    var dateStr=new Date(o.created_at).toLocaleDateString(lang==='de'?'de-DE':lang==='id'?'id-ID':'en-GB',{day:'2-digit',month:'2-digit',year:'numeric'});
+    var groupTotal=items.reduce(function(s,i){return s+i.price_k*i.quantity;},0);
+    var icon=o.order_type==='minibar'?'🏠':'🍽️';
+    var label=o.order_type==='minibar'?minibarLabel:restaurantLabel;
+    var itemRows=items.map(function(i){
+      return '<div class="ritem"><span class="ritem-name">'+i.quantity+'x '+i.name+'</span><span class="ritem-price">'+formatRp(i.price_k*i.quantity)+'</span>'+
+        '<button onclick="removeCheckoutItem('+o.id+','+i.id+')" title="Entfernen" style="background:none;border:none;color:#e74c3c;cursor:pointer;font-size:14px;margin-left:8px">&#10005;</button></div>';
+    }).join('');
+    return '<div class="sec-label" style="display:flex;justify-content:space-between;align-items:center;font-size:11px;font-weight:700;color:var(--text2)"><span>📅 '+dateStr+' — '+icon+' '+label+'</span><span>'+formatRp(groupTotal)+'</span></div>'+itemRows;
+  }).join('');
+  var discountToggle=checkoutDiscountOpen
+    ? '<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap">'+
+        '<span style="font-size:13px;color:var(--text3)">Rabatt:</span>'+
+        [0,10,20].map(function(p){return '<button onclick="setCheckoutDiscount('+p+')" style="padding:4px 10px;border-radius:6px;border:1px solid '+(checkoutDiscount===p?'var(--accent)':'var(--border)')+';background:'+(checkoutDiscount===p?'var(--accent-bg)':'#fff')+';font-size:12px;cursor:pointer">'+p+'%</button>';}).join('')+
+        '<button onclick="checkoutDiscountOpen=false;renderCheckoutBody()" style="margin-left:auto;padding:4px 8px;border:none;background:none;color:var(--text3);font-size:12px;cursor:pointer">✕</button>'+
+      '</div>'
+    : '<div style="margin-bottom:12px"><button onclick="checkoutDiscountOpen=true;renderCheckoutBody()" style="padding:5px 10px;border-radius:6px;border:1px solid var(--border);background:#fff;font-size:11px;color:var(--text3);cursor:pointer">✎ Rabatt (nur Personal)</button></div>';
+  body.innerHTML=
+    '<div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:12px">'+groupsHtml+
+    '<div class="rtotal" style="border-top:1px solid var(--border)"><span>Subtotal</span><span>'+formatRp(subtotal)+'</span></div>'+
+    '</div>'+
+    discountToggle+
+    (checkoutDiscount>0?'<div class="rtotal" style="color:#e67e22"><span>Rabatt ('+checkoutDiscount+'%)</span><span>-'+formatRp(discountAmt)+'</span></div>':'')+
+    '<div class="rtotal" style="font-size:18px;font-weight:800;background:var(--bg);border-radius:8px;padding:10px 12px;margin-bottom:14px"><span>Total</span><span>'+formatRp(finalTotal)+'</span></div>'+
+    '<div class="pay-label"><span class="l-de">Zahlungsart</span><span class="l-en">Payment method</span><span class="l-id">Metode pembayaran</span></div>'+
+    '<div class="pay-methods" style="margin-bottom:14px">'+
+      '<div class="pm" id="checkout-pm-cash" onclick="selCheckoutPM(\'cash\')"><div class="pm-icon">💵</div><div class="pm-label"><span class="l-de">Bar</span><span class="l-en">Cash</span><span class="l-id">Tunai</span></div></div>'+
+      '<div class="pm" id="checkout-pm-card" onclick="selCheckoutPM(\'card\')"><div class="pm-icon">💳</div><div class="pm-label"><span class="l-de">Karte</span><span class="l-en">Card</span><span class="l-id">Kartu</span></div></div>'+
+      '<div class="pm" id="checkout-pm-qr" onclick="selCheckoutPM(\'qr\')"><div class="pm-icon">📱</div><div class="pm-label">QRIS</div></div>'+
+    '</div>'+
+    '<button class="confirm-btn" id="checkout-confirm-btn" onclick="confirmCheckout()" disabled><span class="l-de">Zahlung bestätigen</span><span class="l-en">Confirm payment</span><span class="l-id">Konfirmasi pembayaran</span></button>';
+  document.body.className=lang;
+  if(checkoutPM){var pmEl=document.getElementById('checkout-pm-'+checkoutPM);if(pmEl)pmEl.classList.add('sel');}
+  updateCheckoutBtn();
+}
+
+function setCheckoutDiscount(p){checkoutDiscount=p;renderCheckoutBody();if(checkoutPM)document.getElementById('checkout-pm-'+checkoutPM).classList.add('sel');updateCheckoutBtn();}
+function selCheckoutPM(pm){
+  checkoutPM=pm;
+  document.querySelectorAll('#checkout-body .pm').forEach(function(b){b.classList.remove('sel');});
+  var el=document.getElementById('checkout-pm-'+pm);if(el)el.classList.add('sel');
+  updateCheckoutBtn();
+}
+function updateCheckoutBtn(){
+  var btn=document.getElementById('checkout-confirm-btn');
+  if(btn)btn.disabled=!checkoutPM||!checkoutOrders.length;
+}
+
+async function confirmCheckout(){
+  if(!checkoutRoom||!checkoutPM)return;
+  var checkedOrders=checkoutOrders;
+  if(!checkedOrders.length)return;
+  var minibarOrders=checkedOrders.filter(function(o){return o.order_type==='minibar';});
+  var restaurantOrders=checkedOrders.filter(function(o){return o.order_type==='restaurant';});
+  var itemsOf=function(o){return (o.order_items||[]).filter(function(i){return i.status!=='cancelled';});};
+  var sumOf=function(orders){return orders.reduce(function(s,o){return s+itemsOf(o).reduce(function(s2,i){return s2+i.price_k*i.quantity;},0);},0);};
+  var minibarSubtotal=sumOf(minibarOrders);
+  var restaurantSubtotal=sumOf(restaurantOrders);
+  var subtotal=minibarSubtotal+restaurantSubtotal;
+  var discountAmt=Math.round(subtotal*checkoutDiscount/100);
+  var finalTotal=subtotal-discountAmt;
+  try{
+    for(var i=0;i<checkedOrders.length;i++){
+      await sbPatch('orders','id=eq.'+checkedOrders[i].id,{status:'paid',payment_method:checkoutPM,paid_at:new Date().toISOString()});
+    }
+    var lastSaleId=null;
+    if(minibarOrders.length){
+      var mSnapshot=minibarOrders.map(function(o){
+        var items=itemsOf(o);
+        return {date:o.created_at.slice(0,10),items:items.map(function(i){return {name:i.name,quantity:i.quantity,price_k:i.price_k};})};
+      }).filter(function(g){return g.items.length;});
+      var mTotal=Math.round(minibarSubtotal-minibarSubtotal*checkoutDiscount/100);
+      try{
+        var mRes=await sbPost('sales',{order_id:minibarOrders.length===1?minibarOrders[0].id:null,room_id:checkoutRoom.id,total_k:mTotal,payment_method:checkoutPM,revenue_category:'minibar',discount_percent:checkoutDiscount,discount_reason:checkoutDiscount>0?'Rabatt':null,item_snapshot:mSnapshot});
+        lastSaleId=mRes[0].id;
+      }catch(e){}
+    }
+    if(restaurantOrders.length){
+      var rTotal=Math.round(restaurantSubtotal-restaurantSubtotal*checkoutDiscount/100);
+      var rTableNums=restaurantOrders.map(function(o){return o.table_number;}).filter(function(v,idx,a){return a.indexOf(v)===idx;}).join('+');
+      try{
+        var rRes=await sbPost('sales',{order_id:restaurantOrders.length===1?restaurantOrders[0].id:null,room_id:checkoutRoom.id,table_number:restaurantOrders.length===1?restaurantOrders[0].table_number:null,total_k:rTotal,payment_method:checkoutPM,revenue_category:'restaurant',discount_percent:checkoutDiscount,discount_reason:checkoutDiscount>0?'Rabatt':null});
+        lastSaleId=rRes[0].id;
+      }catch(e){}
+    }
+    logAction('Abreise kassiert',checkoutRoom.name+' · '+checkoutPM+' · Rp '+finalTotal+'k'+(minibarOrders.length&&restaurantOrders.length?' (Minibar+Restaurant)':minibarOrders.length?' (Minibar)':' (Restaurant)')+(checkoutDiscount>0?' · Rabatt '+checkoutDiscount+'%':''));
+    closeCheckout();
+    notify('✓ '+checkoutRoom.name+' · '+formatRp(finalTotal));
+    if(lastSaleId)showPaidReceipt(lastSaleId);
+  }catch(e){notify('⚠ Fehler: '+e.message);}
+}
+
+window.addEventListener('DOMContentLoaded',function(){
+  loadStaff();initPins();
+  for(var _i=0;_i<8;_i++){history.pushState(null,'',location.href);}
+  window.addEventListener('popstate',function(){history.pushState(null,'',location.href);});
+});
+</script>
+</body>
+</html>

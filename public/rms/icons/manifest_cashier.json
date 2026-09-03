@@ -1,0 +1,14 @@
+{
+  "name": "Mata Villas Cashier",
+  "short_name": "Cashier",
+  "id": "/rms/kasse_terminal.html",
+  "scope": "/rms/kasse_terminal.html",
+  "start_url": "/rms/kasse_terminal.html",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#28A564",
+  "icons": [
+    {"src": "cashier_icon_192.png", "sizes": "192x192", "type": "image/png"},
+    {"src": "cashier_icon_512.png", "sizes": "512x512", "type": "image/png"}
+  ]
+}

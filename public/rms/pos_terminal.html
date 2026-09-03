@@ -1,0 +1,973 @@
+<!DOCTYPE html>
+<!-- Mata Villas v2026-08-24 20:15 -->
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>POS — Mata Villas</title>
+<link rel="manifest" href="icons/manifest_pos.json">
+<link rel="apple-touch-icon" href="icons/pos_icon_180.png">
+<link rel="icon" href="icons/pos_icon_192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="POS">
+<meta name="theme-color" content="#1CA9DB">
+<style>
+
+:root{
+  --bg:#f0f4f8;--bg2:#fff;--border:#e2e8f0;
+  --text:#1a202c;--text2:#4a5568;--text3:#a0aec0;
+  --accent:#3182ce;--accent-bg:#ebf8ff;
+  --green:#276749;--green-bg:#f0fff4;--green-bd:#9ae6b4;
+  --orange:#c05621;--orange-bg:#fffaf0;--orange-bd:#fbd38d;
+  --red:#c53030;--red-bg:#fff5f5;--red-bd:#fed7d7;
+  --yellow:#b7791f;--yellow-bg:#fffff0;--yellow-bd:#fefcbf;
+  --font:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font);background:var(--bg);color:var(--text)}
+
+body{height:100vh;height:100dvh;display:flex;flex-direction:column;overflow:hidden}
+
+.login{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;z-index:100}
+.login.hidden{display:none}
+.lcard{background:#fff;border-radius:16px;padding:32px 28px;width:320px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.2)}
+.lcard img{height:56px;object-fit:contain;margin-bottom:12px}
+.lcard h2{font-size:17px;font-weight:700;margin-bottom:16px}
+.lcard select{width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;font-size:14px;margin-bottom:14px;font-family:var(--font);background:#fff;outline:none}
+.pins{display:flex;gap:8px;justify-content:center;margin-bottom:14px}
+.pin{width:48px;height:52px;border:2px solid var(--border);border-radius:10px;font-size:22px;text-align:center;font-family:var(--font);background:#fff;outline:none}
+.pin:focus{border-color:var(--accent)}
+.lbtn{width:100%;padding:12px;border-radius:10px;background:var(--accent);color:#fff;border:none;font-size:15px;font-weight:600;cursor:pointer;font-family:var(--font)}
+.lerr{color:var(--red);font-size:12px;margin-top:8px;min-height:16px}
+
+.topbar{background:#fff;border-bottom:1px solid var(--border);padding:10px 16px;display:flex;align-items:center;gap:10px;flex-shrink:0}
+.topbar img{height:32px;object-fit:contain}
+.topbar-title{font-size:15px;font-weight:700;flex:1}
+.topbar-right{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.lb{padding:4px 9px;border-radius:6px;font-size:11px;font-weight:700;border:1.5px solid var(--border);background:var(--bg);color:var(--text2);cursor:pointer;font-family:var(--font)}
+.lb.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+.topbar-user{font-size:13px;color:var(--text2)}
+.logout-btn{padding:5px 9px;border-radius:6px;border:1.5px solid var(--border);background:var(--bg);cursor:pointer;font-size:13px;font-family:var(--font)}
+
+.notif{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1a202c;color:#fff;border-radius:8px;padding:10px 20px;font-size:13px;z-index:200;opacity:0;pointer-events:none;transition:opacity .25s;white-space:nowrap}
+.notif.show{opacity:1}
+
+/* POS layout */
+.pos{flex:1;display:flex;overflow:hidden;min-height:0}
+/* Menu side */
+.menu-side{flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0}
+.mode-bar{display:flex;gap:0;background:#fff;border-bottom:1px solid var(--border);flex-shrink:0}
+.mbtn{flex:1;padding:9px;border:none;background:var(--bg);color:var(--text2);font-size:13px;font-weight:700;cursor:pointer;font-family:var(--font);border-bottom:3px solid transparent}
+.mbtn.on{background:#fff;color:var(--accent);border-bottom-color:var(--accent)}
+.table-bar{padding:8px 10px;background:#fff;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;flex-shrink:0;min-height:52px}
+.room-bill-bar{padding:6px 10px;background:var(--accent-bg);border-bottom:1px solid var(--border);flex-shrink:0}
+.rb-toggle{padding:6px 12px;border-radius:8px;border:1.5px solid var(--accent);background:#fff;color:var(--accent);font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font)}
+.rb-toggle.on{background:var(--accent);color:#fff}
+.rb-rooms{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap}
+.rb-room-btn{padding:6px 12px;border-radius:8px;border:1.5px solid var(--border);background:#fff;color:var(--text2);font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font)}
+.rb-room-btn.sel{background:var(--accent);color:#fff;border-color:var(--accent)}
+.rb-cancel{color:var(--red);border-color:var(--red-bd);background:var(--red-bg)}
+.rb-release{margin-top:6px;padding:6px 12px;border-radius:8px;border:1.5px solid var(--orange-bd);background:var(--orange-bg);color:var(--orange);font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);display:block}
+.table-label{font-size:12px;font-weight:600;white-space:nowrap;color:var(--text2)}
+.tgrid{display:flex;gap:5px;overflow-x:auto;flex:1;scrollbar-width:none;padding:2px 0}
+.tgrid::-webkit-scrollbar{display:none}
+.ttile{min-width:40px;height:38px;border-radius:7px;border:1.5px solid var(--border);background:var(--bg);font-size:11px;font-weight:700;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;font-family:var(--font);padding:0 3px}
+.ttile.occ{background:var(--accent-bg);border-color:var(--accent);color:var(--accent)}
+.ttile.sel{background:var(--accent);border-color:var(--accent);color:#fff}
+.ttile-n{font-size:13px;font-weight:800;line-height:1}
+.ttile-s{font-size:9px;line-height:1;margin-top:1px}
+.cat-bar{padding:6px 10px;background:#fff;border-bottom:1px solid var(--border);display:flex;gap:5px;overflow-x:auto;flex-shrink:0;scrollbar-width:none}
+.cat-bar::-webkit-scrollbar{display:none}
+.cbtn{flex-shrink:0;padding:5px 11px;border-radius:14px;font-size:12px;font-weight:600;border:1.5px solid var(--border);background:var(--bg);color:var(--text2);cursor:pointer;font-family:var(--font)}
+.cbtn.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+.mgrid{flex:1;overflow-y:auto;padding:8px 10px;display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:7px;align-content:start}
+.mcard{background:#fff;border:1.5px solid var(--border);border-radius:9px;padding:9px;cursor:pointer;position:relative;transition:border-color .1s,box-shadow .1s}
+.mcard:active{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-bg)}
+.mcard-cat{font-size:9px;color:var(--text3);margin-bottom:2px;text-transform:uppercase;letter-spacing:.04em}
+.mcard-name{font-size:12px;font-weight:600;line-height:1.3}
+.mcard-price{font-size:12px;color:var(--accent);font-weight:700;margin-top:3px}
+.mcard-badge{position:absolute;top:-5px;right:-5px;background:var(--accent);color:#fff;width:18px;height:18px;border-radius:50%;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center}
+/* Order panel */
+.order-panel{width:290px;flex-shrink:0;background:#fff;border-left:1.5px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+/* Mobile */
+@media(max-width:660px){
+  .order-panel{position:fixed;bottom:0;left:0;right:0;width:100%;max-height:72vh;border-left:none;border-top:2px solid var(--border);border-radius:16px 16px 0 0;transform:translateY(100%);transition:transform .28s cubic-bezier(.4,0,.2,1);z-index:40;box-shadow:0 -4px 24px rgba(0,0,0,.12)}
+  .order-panel.open{transform:translateY(0)}
+  .drag-handle{display:flex!important}
+  .fab{display:flex!important}
+  .mgrid{grid-template-columns:repeat(2,1fr)}
+  .mcard-name{font-size:11px}
+}
+.drag-handle{display:none;justify-content:center;padding:7px;cursor:pointer;flex-shrink:0}
+.drag-handle-bar{width:34px;height:4px;border-radius:2px;background:var(--border)}
+.fab{position:fixed;bottom:14px;right:14px;width:54px;height:54px;border-radius:50%;background:var(--accent);color:#fff;border:none;font-size:20px;cursor:pointer;box-shadow:0 3px 14px rgba(49,130,206,.45);align-items:center;justify-content:center;z-index:39;display:none}
+.fab-n{position:absolute;top:-3px;right:-3px;background:var(--red);color:#fff;width:19px;height:19px;border-radius:50%;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.panel-head{padding:10px 13px;font-size:13px;font-weight:700;border-bottom:1px solid var(--border);background:var(--bg);flex-shrink:0;display:flex;justify-content:space-between;align-items:center}
+.existing-orders{background:var(--accent-bg);border-bottom:1px solid var(--border);padding:8px 12px;font-size:12px;flex-shrink:0;display:none;max-height:96px;overflow-y:auto}
+.existing-title{font-size:11px;font-weight:700;color:var(--accent);margin-bottom:4px}
+.existing-item{color:var(--text2);padding:1px 0}
+.olist{flex:1;min-height:0;overflow-y:auto;padding:6px 8px}
+.oempty{display:flex;align-items:center;justify-content:center;height:70px;color:var(--text3);font-size:13px}
+.oitem{display:flex;align-items:center;gap:7px;padding:6px 3px;border-bottom:1px solid var(--border)}
+.oitem:last-child{border-bottom:none}
+.oitem-info{flex:1;min-width:0}
+.oitem-name{font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.oitem-price{font-size:11px;color:var(--text3)}
+.qctrl{display:flex;align-items:center;gap:3px;flex-shrink:0}
+.qbtn{width:22px;height:22px;border-radius:5px;border:1.5px solid var(--border);background:var(--bg);font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:var(--font)}
+.qbtn-del{margin-left:4px;color:var(--red);border-color:var(--red-bd);background:var(--red-bg);font-size:11px}
+.qn{font-size:12px;font-weight:700;min-width:18px;text-align:center}
+.note-area{padding:6px 8px;flex-shrink:0;border-top:1px solid var(--border)}
+.note-area textarea{width:100%;padding:6px 9px;border:1.5px solid var(--border);border-radius:7px;font-size:12px;font-family:var(--font);resize:none;outline:none;height:38px}
+.manual-btn{margin:6px 8px 0;padding:8px;border-radius:8px;border:1.5px dashed var(--border);background:var(--bg);color:var(--text2);font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);flex-shrink:0}
+.manual-overlay{display:none;position:fixed;inset:0;background:rgba(26,32,44,.75);z-index:120;align-items:center;justify-content:center}
+.manual-overlay.show{display:flex}
+.manual-card{background:#fff;border-radius:16px;padding:22px;width:90%;max-width:340px;text-align:left}
+.manual-label{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:6px}
+.manual-input{width:100%;padding:9px 10px;border:1.5px solid var(--border);border-radius:8px;font-family:var(--font);font-size:14px;margin-bottom:14px;outline:none}
+.mcatbtn{flex:1;padding:9px;border-radius:8px;border:1.5px solid var(--border);background:#fff;color:var(--text2);font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font)}
+.mcatbtn.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+.total-row{padding:9px 13px;border-top:1.5px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-shrink:0;font-size:15px;font-weight:800}
+.actions{padding:7px 9px 10px;display:flex;gap:7px;flex-shrink:0}
+.abtn{flex:1;padding:9px;border-radius:9px;border:none;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--font)}
+.abtn.clr{background:var(--bg);color:var(--text2);border:1.5px solid var(--border)}
+.abtn.snd{background:var(--accent);color:#fff}
+.abtn.off{opacity:.4}
+.abtn:disabled{opacity:.35;cursor:not-allowed}
+/* Sent overlay */
+.sent-ov{position:fixed;inset:0;background:rgba(49,130,206,.92);display:flex;align-items:center;justify-content:center;z-index:100;pointer-events:none;opacity:0;transition:opacity .25s}
+.sent-ov.show{opacity:1}
+.sent-box{text-align:center;color:#fff}
+.sent-icon{font-size:56px}
+.sent-msg{font-size:22px;font-weight:800;margin-top:6px}
+.sent-sub{font-size:13px;opacity:.85;margin-top:3px}
+/* Backdrop */
+.backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.25);z-index:39}
+.backdrop.show{display:block}
+</style>
+</head>
+<body class="de">
+
+<div class="login" id="login">
+  <div class="lcard">
+    <img class="login-logo" src="" alt="Mata Villas">
+    <h2>POS Terminal</h2>
+    <select id="login-role"></select>
+    <div class="pins">
+      <input class="pin" type="tel" maxlength="1" inputmode="numeric" autocomplete="off" readonly>
+      <input class="pin" type="tel" maxlength="1" inputmode="numeric" autocomplete="off" readonly>
+      <input class="pin" type="tel" maxlength="1" inputmode="numeric" autocomplete="off" readonly>
+      <input class="pin" type="tel" maxlength="1" inputmode="numeric" autocomplete="off" readonly>
+    </div>
+    <button class="lbtn" id="login-btn" onclick="doLogin()"></button>
+    <div class="lerr" id="login-err"></div>
+  </div>
+</div>
+
+<div class="topbar">
+  <img class="topbar-logo" src="" alt="Mata Villas">
+  <span class="topbar-title" id="topbar-title"></span>
+  <span style="font-size:8px;color:var(--text3);font-family:monospace" id="ver-tag"></span>
+  <div class="topbar-right">
+    <button class="lb on" onclick="setLang('de')">DE</button>
+    <button class="lb" onclick="setLang('en')">EN</button>
+    <button class="lb" onclick="setLang('id')">ID</button>
+    
+    <a href="tischplan.html" target="_blank" class="logout-btn" title="Tischplan" style="text-decoration:none;display:inline-flex;align-items:center;justify-content:center">🗺️</a>
+    <span class="topbar-user" id="topbar-user"></span>
+    <button class="logout-btn" onclick="doLogout()">⏻</button>
+  </div>
+</div>
+<div class="pos">
+  <div class="menu-side">
+    <div class="mode-bar" id="mode-bar">
+      <button class="mbtn on" data-m="restaurant" id="mode-restaurant"></button>
+      <button class="mbtn" data-m="minibar" id="mode-minibar"></button>
+    </div>
+    <div class="table-bar">
+      <span class="table-label" id="tbl-label"></span>
+      <div class="tgrid" id="tgrid"></div>
+    </div>
+    <div class="room-bill-bar" id="room-bill-bar" style="display:none">
+      <button class="rb-toggle" id="rb-toggle" onclick="toggleRoomBill()"></button>
+      <div class="rb-rooms" id="rb-rooms" style="display:none"></div>
+      <button class="rb-release" id="release-table-btn" onclick="releaseTable()" style="display:none"></button>
+    </div>
+    <div class="cat-bar" id="catbar"></div>
+    <div class="mgrid" id="mgrid"></div>
+  </div>
+  <div class="order-panel" id="order-panel">
+    <div class="drag-handle" onclick="toggleCart()"><div class="drag-handle-bar"></div></div>
+    <div class="panel-head">
+      <span id="panel-title"></span>
+      <span id="panel-count" style="font-size:11px;color:var(--text3)"></span>
+    </div>
+    <div class="existing-orders" id="existing-orders">
+      <div class="existing-title" id="existing-title"></div>
+      <div id="existing-items"></div>
+    </div>
+    <div class="olist" id="olist"></div>
+    <button class="manual-btn" id="manual-btn" onclick="openManualAdd()"></button>
+    <div class="note-area"><textarea id="onote" id="onote"></textarea></div>
+    <div class="total-row"><span id="total-label"></span><span id="ototal">Rp 0k</span></div>
+    <div class="actions">
+      <button class="abtn clr" id="clr-btn" onclick="clearOrder()"></button>
+      <button class="abtn snd" id="snd-btn" onclick="sendOrder()"></button>
+    </div>
+  </div>
+</div>
+<div class="backdrop" id="backdrop" onclick="closeCart()"></div>
+<div class="manual-overlay" id="manual-overlay">
+  <div class="manual-card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <div style="font-size:16px;font-weight:800" id="manual-title"></div>
+      <button onclick="closeManualAdd()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--text3)">✕</button>
+    </div>
+    <label class="manual-label" id="manual-name-label"></label>
+    <input type="text" id="manual-name" class="manual-input">
+    <div style="display:flex;gap:10px">
+      <div style="flex:2">
+        <label class="manual-label" id="manual-price-label"></label>
+        <input type="number" id="manual-price" class="manual-input" placeholder="0">
+      </div>
+      <div style="flex:1">
+        <label class="manual-label" id="manual-qty-label"></label>
+        <input type="number" id="manual-qty" class="manual-input" value="1" min="1">
+      </div>
+    </div>
+    <div id="manual-cat-wrap" style="margin-bottom:6px">
+      <label class="manual-label" id="manual-cat-label"></label>
+      <div style="display:flex;gap:8px">
+        <button class="mcatbtn on" data-c="Tapas" id="manual-cat-kitchen"></button>
+        <button class="mcatbtn" data-c="Drinks" id="manual-cat-bar"></button>
+      </div>
+    </div>
+    <button class="lbtn" id="manual-add-btn" onclick="addManualItem()" style="margin-top:12px"></button>
+  </div>
+</div>
+<button class="fab" id="fab" onclick="toggleCart()">🛒<span class="fab-n" id="fab-n">0</span></button>
+<div class="sent-ov" id="sent-ov">
+  <div class="sent-box">
+    <div class="sent-icon">✅</div>
+    <div class="sent-msg" id="sent-msg"></div>
+    <div class="sent-sub" id="sent-sub"></div>
+  </div>
+</div>
+<div class="notif" id="notif"></div>
+<script>
+
+var T={
+  de:{selectTable:'Tisch wählen',order:'Bestellung',empty:'Noch leer',note:'Notiz...',
+      total:'Total',clear:'Leeren',send:'Abschicken',sent:'Bestellung gesendet!',
+      free:'frei',busy:'belegt',allCats:'Alle',openOrder:'Offene Bestellung',
+      noOrders:'Keine Bestellungen',start:'Beginnen',ready:'Fertig',
+      served:'Abgeholt',cooking:'In Zubereitung',all:'Alle',new:'Neu',
+      history:'Bestellverlauf',table:'Tisch',time:'Zeit',status:'Status',
+      items:'Gerichte',signIn:'Anmelden',selectStaff:'Mitarbeiter wählen',
+      wrongPin:'Falscher PIN',pay:'Zahlung bestätigen',cash:'Bar',
+      card:'Karte',bills:'Offene Rechnungen',selectBill:'Rechnung wählen',
+      paid:'Bezahlt!',today:'Heute',week:'Diese Woche',reports:'Berichte',
+      staff:'Personal',menu:'Speisekarte',dashboard:'Dashboard',
+      activeOrders:'Aktive Bestellungen',revenue:'Umsatz heute',
+      orders:'Bestellungen',tables:'Tische belegt',noActive:'Keine aktiven Bestellungen',
+      save:'Speichern',cancel:'Abbrechen',delete:'Löschen',
+      available:'Verfügbar',role:'Rolle',pin:'PIN',
+      firstName:'Vorname',lastName:'Nachname',add:'Hinzufügen',
+      noTableSel:'Bitte zuerst Tisch wählen',cartEmpty:'Warenkorb ist leer',noPin:'Kein PIN hinterlegt',
+      restaurant:'Restaurant',minibar:'Minibar',selectRoom:'Zimmer wählen',room:'Zimmer',
+      noRoomSel:'Bitte zuerst Zimmer wählen',
+      manualAdd:'➕ Manuell hinzufügen',manualTitle:'Manuelle Position',manualName:'Bezeichnung',
+      manualPrice:'Preis (Rp, in k)',manualCat:'Bereich',manualKitchen:'Küche',manualBar:'Bar',
+      manualAddBtn:'Hinzufügen',manualFillAll:'Bitte Bezeichnung und Preis eingeben',
+      billToRoom:'🏨 Auf Zimmerrechnung buchen',billToRoomOn:'✓ Zimmerrechnung: ',manualQty:'Menge',
+      releaseTable:'✅ Tisch freigeben (Gast gegangen)',
+      releaseConfirm:'Tisch {t} freigeben? Die Rechnung läuft für Zimmer {r} bis zur Abreise weiter.',
+      tableReleased:'Tisch freigegeben',
+      priceWarn:'⚠ Rp {p}k ist ungewöhnlich hoch — meinst du vielleicht Rp {s}k? OK = trotzdem Rp {p}k verwenden, Abbrechen = Preis korrigieren.',
+      roomBillPendingWarn:'Bitte zuerst ein Zimmer wählen oder abbrechen'},
+  en:{selectTable:'Select table',order:'Order',empty:'Empty',note:'Note...',
+      total:'Total',clear:'Clear',send:'Send',sent:'Order sent!',
+      free:'free',busy:'busy',allCats:'All',openOrder:'Open order',
+      noOrders:'No orders',start:'Start',ready:'Ready',
+      served:'Picked up',cooking:'Cooking',all:'All',new:'New',
+      history:'Order history',table:'Table',time:'Time',status:'Status',
+      items:'Items',signIn:'Sign in',selectStaff:'Select staff',
+      wrongPin:'Wrong PIN',pay:'Confirm payment',cash:'Cash',
+      card:'Card',bills:'Open bills',selectBill:'Select bill',
+      paid:'Paid!',today:'Today',week:'This week',reports:'Reports',
+      staff:'Staff',menu:'Menu',dashboard:'Dashboard',
+      activeOrders:'Active Orders',revenue:'Revenue today',
+      orders:'Orders',tables:'Tables busy',noActive:'No active orders',
+      save:'Save',cancel:'Cancel',delete:'Delete',
+      available:'Available',role:'Role',pin:'PIN',
+      firstName:'First name',lastName:'Last name',add:'Add',
+      noTableSel:'Please select a table first',cartEmpty:'Cart is empty',noPin:'No PIN set',
+      restaurant:'Restaurant',minibar:'Minibar',selectRoom:'Select room',room:'Room',
+      noRoomSel:'Please select a room first',
+      manualAdd:'➕ Add manually',manualTitle:'Manual item',manualName:'Name',
+      manualPrice:'Price (Rp, in k)',manualCat:'Section',manualKitchen:'Kitchen',manualBar:'Bar',
+      manualAddBtn:'Add',manualFillAll:'Please enter name and price',
+      billToRoom:'🏨 Bill to room',billToRoomOn:'✓ Room bill: ',manualQty:'Qty',
+      releaseTable:'✅ Release table (guest left)',
+      releaseConfirm:'Release table {t}? The bill continues for room {r} until check-out.',
+      tableReleased:'Table released',
+      priceWarn:'⚠ Rp {p}k is unusually high — did you mean Rp {s}k? OK = keep Rp {p}k anyway, Cancel = fix the price.',
+      roomBillPendingWarn:'Please select a room first, or cancel'},
+  id:{selectTable:'Pilih meja',order:'Pesanan',empty:'Kosong',note:'Catatan...',
+      total:'Total',clear:'Hapus',send:'Kirim',sent:'Pesanan dikirim!',
+      free:'bebas',busy:'terisi',allCats:'Semua',openOrder:'Pesanan terbuka',
+      noOrders:'Tidak ada pesanan',start:'Mulai',ready:'Siap',
+      served:'Diambil',cooking:'Masak',all:'Semua',new:'Baru',
+      history:'Riwayat',table:'Meja',time:'Waktu',status:'Status',
+      items:'Item',signIn:'Masuk',selectStaff:'Pilih staf',
+      wrongPin:'PIN salah',pay:'Konfirmasi pembayaran',cash:'Tunai',
+      card:'Kartu',bills:'Tagihan terbuka',selectBill:'Pilih tagihan',
+      paid:'Dibayar!',today:'Hari ini',week:'Minggu ini',reports:'Laporan',
+      staff:'Staf',menu:'Menu',dashboard:'Dashboard',
+      activeOrders:'Pesanan Aktif',revenue:'Pendapatan hari ini',
+      orders:'Pesanan',tables:'Meja terisi',noActive:'Tidak ada pesanan aktif',
+      save:'Simpan',cancel:'Batal',delete:'Hapus',
+      available:'Tersedia',role:'Peran',pin:'PIN',
+      firstName:'Nama depan',lastName:'Nama belakang',add:'Tambah',
+      noTableSel:'Pilih meja dulu',cartEmpty:'Keranjang kosong',noPin:'PIN belum diatur',
+      restaurant:'Restoran',minibar:'Minibar',selectRoom:'Pilih kamar',room:'Kamar',
+      noRoomSel:'Pilih kamar dulu',
+      manualAdd:'➕ Tambah manual',manualTitle:'Item manual',manualName:'Nama',
+      manualPrice:'Harga (Rp, ribuan)',manualCat:'Bagian',manualKitchen:'Dapur',manualBar:'Bar',
+      manualAddBtn:'Tambah',manualFillAll:'Isi nama dan harga',
+      billToRoom:'🏨 Tagih ke kamar',billToRoomOn:'✓ Tagihan kamar: ',manualQty:'Jml',
+      releaseTable:'✅ Bebaskan meja (tamu pergi)',
+      releaseConfirm:'Bebaskan meja {t}? Tagihan berlanjut untuk kamar {r} sampai check-out.',
+      tableReleased:'Meja dibebaskan',
+      priceWarn:'⚠ Rp {p}k terlihat sangat tinggi — maksud Anda Rp {s}k? OK = tetap gunakan Rp {p}k, Batal = perbaiki harga.',
+      roomBillPendingWarn:'Silakan pilih kamar dulu, atau batalkan'}
+};
+function t(k){return(T[lang]&&T[lang][k])||(T.de&&T.de[k])||k;}
+function tw(){return t('table')+' ';}
+
+
+var SB='https://pxzdkyvndosikdmstnpp.supabase.co',KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB4emRreXZuZG9zaWtkbXN0bnBwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1NTIyNzQsImV4cCI6MjA5NTEyODI3NH0.QX1Iki-lguTfVsmyYWA9yPRtC8Qln-lMhSbCdMSdlYw';
+async function sbGet(table,q){var r=await fetch(SB+'/rest/v1/'+table+'?'+(q||''),{headers:{'apikey':KEY,'Authorization':'Bearer '+KEY}});if(!r.ok)throw new Error(r.status);return r.json();}
+async function sbPost(table,d){var r=await fetch(SB+'/rest/v1/'+table,{method:'POST',headers:{'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':'application/json','Prefer':'return=representation'},body:JSON.stringify(d)});if(!r.ok)throw new Error(await r.text());return r.json();}
+
+var currentStaff=null;
+function logAction(action,details){
+  sbPost('audit_log',{staff_name:currentStaff?currentStaff.fname:null,staff_role:currentStaff?currentStaff.role:null,terminal:'POS',action:action,details:details||null}).catch(function(){});
+}
+async function sbPatch(table,filter,d){var r=await fetch(SB+'/rest/v1/'+table+'?'+filter,{method:'PATCH',headers:{'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':'application/json'},body:JSON.stringify(d)});if(!r.ok){var t='';try{t=await r.text();}catch(e){}throw new Error('DB-Fehler ('+r.status+'): '+t);}return r;}
+async function sbDel(table,filter){var r=await fetch(SB+'/rest/v1/'+table+'?'+filter,{method:'DELETE',headers:{'apikey':KEY,'Authorization':'Bearer '+KEY}});if(!r.ok){var t='';try{t=await r.text();}catch(e){}throw new Error('DB-Fehler ('+r.status+'): '+t);}return r;}
+
+
+var lang='de';
+function setLang(l){
+  lang=l;
+  document.body.className=l;
+  document.querySelectorAll('.lb').forEach(function(b,i){b.classList.toggle('on',['de','en','id'][i]===l);});
+  if(typeof onLangChange==='function') onLangChange();
+}
+
+
+var staff=[];
+async function loadStaff(){
+  try{
+    staff=await sbGet('staff','active=eq.true&order=fname');
+    buildSelect();autoLoginFromQuery();
+  }catch(e){console.warn('Staff load failed:',e);buildSelect();}
+}
+var LOGO='data:image/jpeg;base64,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';
+document.querySelectorAll('.login-logo,.topbar-logo').forEach(function(el){el.src=LOGO;});
+
+function buildSelect(){
+  var sel=document.getElementById('login-role');
+  if(!sel)return;
+  sel.innerHTML='<option value="">— '+t('selectStaff')+' —</option>';
+  staff.filter(function(s){return s.active;}).forEach(function(s){
+    var o=document.createElement('option');o.value=s.id;
+    o.textContent=s.fname+' '+(s.lname||'');sel.appendChild(o);
+  });
+}
+
+function initPins(){
+  var pins=document.querySelectorAll('.pin');
+  pins.forEach(function(el,i){
+    el.setAttribute('readonly','');
+    el.addEventListener('focus',function(){this.removeAttribute('readonly');this.value='';});
+    el.addEventListener('input',function(){
+      if(this.value&&i<pins.length-1) pins[i+1].focus();
+      else if(i===pins.length-1&&Array.from(pins).every(function(p){return p.value;})) doLogin();
+    });
+    el.addEventListener('keydown',function(e){if(e.key==='Backspace'&&!this.value&&i>0)pins[i-1].focus();});
+  });
+}
+
+function clearPins(){document.querySelectorAll('.pin').forEach(function(el){el.value='';el.setAttribute('readonly','');});}
+
+function autoLoginFromQuery(){
+  try{
+    var params=new URLSearchParams(location.search);
+    var sid=params.get('autostaff');
+    var pin=params.get('autopin');
+    if(!sid||!pin)return;
+    var sel=document.getElementById('login-role');
+    if(sel) sel.value=sid;
+    var pins=document.querySelectorAll('.pin');
+    for(var i=0;i<pins.length;i++){pins[i].removeAttribute('readonly');pins[i].value=pin[i]||'';}
+    doLogin();
+  }catch(e){console.warn('Auto-Login fehlgeschlagen:',e);}
+}
+function doLogin(){
+  var sid=document.getElementById('login-role').value;
+  var pin=Array.from(document.querySelectorAll('.pin')).map(function(p){return p.value;}).join('');
+  var m=staff.find(function(s){return String(s.id)===String(sid);});
+  if(!m){document.getElementById('login-err').textContent=t('selectStaff');return;}
+  if(m.pin===null||m.pin===undefined||m.pin===''){document.getElementById('login-err').textContent=t('noPin');clearPins();return;}
+  if(pin.length<4||String(m.pin).padStart(4,'0')!==pin){document.getElementById('login-err').textContent=t('wrongPin');clearPins();document.querySelectorAll('.pin')[0].focus();return;}
+  document.getElementById('login').classList.add('hidden');
+  var un=document.getElementById('topbar-user');if(un)un.textContent=m.fname;
+  if(typeof afterLogin==='function')afterLogin(m);
+}
+
+function doLogout(){
+  logAction('Abgemeldet','POS');
+  document.getElementById('login').classList.remove('hidden');
+  clearPins();
+  document.getElementById('login-err').textContent='';
+  if(typeof afterLogout==='function')afterLogout();
+}
+
+
+function notify(msg,dur){var el=document.getElementById('notif');if(!el)return;el.textContent=msg;el.classList.add('show');setTimeout(function(){el.classList.remove('show');},dur||2500);}
+
+
+var menu=[
+  // Breakfast
+  {id:101,name:"Salty Soft Crepes",cat:"Breakfast",price:40,avail:true},
+  {id:102,name:"Sweet Soft Crepes",cat:"Breakfast",price:35,avail:true},
+  {id:103,name:"Herb Cream Cheese",cat:"Breakfast",price:40,avail:true},
+  {id:104,name:"Morning Power",cat:"Breakfast",price:55,avail:true},
+  {id:105,name:"Baguette",cat:"Breakfast",price:50,avail:true},
+  {id:106,name:"Tortilla Española",cat:"Breakfast",price:30,avail:true},
+  {id:107,name:"Overnight Oat with Milk",cat:"Breakfast",price:35,avail:true},
+  {id:108,name:"Avocado Toast",cat:"Breakfast",price:45,avail:true},
+  {id:109,name:"Toasty",cat:"Breakfast",price:30,avail:true},
+  {id:110,name:"Sliced Fruit",cat:"Breakfast",price:35,avail:true},
+  // Tapas
+  {id:201,name:"Alioli con Pan",cat:"Tapas",price:25,avail:true},
+  {id:202,name:"Patatas Bravas",cat:"Tapas",price:40,avail:true},
+  {id:203,name:"Tortilla Española",cat:"Tapas",price:50,avail:true},
+  {id:204,name:"Croquetas de Pollo",cat:"Tapas",price:50,avail:true},
+  {id:205,name:"Croquetas de Champiñones",cat:"Tapas",price:50,avail:true},
+  {id:206,name:"Albondigas",cat:"Tapas",price:45,avail:true},
+  {id:207,name:"Boquerones",cat:"Tapas",price:55,avail:true},
+  {id:208,name:"Gambas al Ajillo",cat:"Tapas",price:80,avail:true},
+  {id:209,name:"Calamares Fritos",cat:"Tapas",price:50,avail:true},
+  {id:210,name:"Pinchos Morunos (Chicken)",cat:"Tapas",price:70,avail:true},
+  {id:211,name:"Pinchos Morunos (Beef)",cat:"Tapas",price:70,avail:true},
+  {id:212,name:"Berenjenas Fritos (Vegan)",cat:"Tapas",price:40,avail:true},
+  {id:213,name:"Vegan Patatas Bravas",cat:"Tapas",price:40,avail:true},
+  // Tabla de Tapas
+  {id:301,name:"Tapas Tradicionales Españolas",cat:"Tabla de Tapas",price:90,avail:true},
+  {id:302,name:"Veggie Fiesta",cat:"Tabla de Tapas",price:100,avail:true},
+  {id:303,name:"Sabor del Mar",cat:"Tabla de Tapas",price:120,avail:true},
+  {id:304,name:"Tierra Mar",cat:"Tabla de Tapas",price:120,avail:true},
+  // Larger Plates
+  {id:401,name:"Fish & Chips",cat:"Larger Plates",price:85,avail:true},
+  {id:402,name:"Nasi Goreng Vegetable",cat:"Larger Plates",price:60,avail:true},
+  {id:403,name:"Niçoise Salad",cat:"Larger Plates",price:70,avail:true},
+  {id:404,name:"Nasi Goreng Chicken",cat:"Larger Plates",price:75,avail:true},
+  {id:405,name:"Nasi Goreng Seafood",cat:"Larger Plates",price:80,avail:true},
+  {id:406,name:"Beef Rendang",cat:"Larger Plates",price:90,avail:true},
+  // Dessert
+  {id:501,name:"Crema Catalana",cat:"Dessert",price:40,avail:true},
+  {id:502,name:"Churros",cat:"Dessert",price:40,avail:true},
+  {id:503,name:"Ice Cream",cat:"Dessert",price:35,avail:true},
+  // Coffee
+  {id:601,name:"Espresso",cat:"Coffee",price:25,avail:true},
+  {id:602,name:"Lombok Black Coffee",cat:"Coffee",price:25,avail:true},
+  {id:603,name:"Hot Latte",cat:"Coffee",price:35,avail:true},
+  {id:604,name:"Cappuccino",cat:"Coffee",price:35,avail:true},
+  {id:605,name:"Iced Coffee Latte",cat:"Coffee",price:40,avail:true},
+  {id:606,name:"Homemade Kakao",cat:"Coffee",price:35,avail:true},
+  // Tea
+  {id:611,name:"Black Tea",cat:"Tea",price:25,avail:true},
+  {id:612,name:"Jasmine Tea",cat:"Tea",price:25,avail:true},
+  {id:613,name:"Roselle Tea",cat:"Tea",price:25,avail:true},
+  {id:614,name:"Thai Tea",cat:"Tea",price:25,avail:true},
+  // Soda
+  {id:621,name:"Coca-Cola",cat:"Soda",price:25,avail:true},
+  {id:622,name:"Coca-Cola Zero",cat:"Soda",price:25,avail:true},
+  {id:623,name:"Sprite",cat:"Soda",price:25,avail:true},
+  {id:624,name:"Mineral Water",cat:"Soda",price:10,avail:true},
+  {id:625,name:"Fresh Coconut",cat:"Soda",price:25,avail:true},
+  {id:626,name:"Kombucha",cat:"Soda",price:45,avail:true},
+  // Fresh Juice
+  {id:631,name:"Banana Juice",cat:"Fresh Juice",price:35,avail:true},
+  {id:632,name:"Mango Juice",cat:"Fresh Juice",price:35,avail:true},
+  {id:633,name:"Pineapple Juice",cat:"Fresh Juice",price:35,avail:true},
+  {id:634,name:"Avocado Juice",cat:"Fresh Juice",price:35,avail:true},
+  {id:635,name:"Orange Juice",cat:"Fresh Juice",price:35,avail:true},
+  {id:636,name:"Green Booster",cat:"Fresh Juice",price:40,avail:true},
+  // Beer
+  {id:641,name:"Small Bintang",cat:"Beer",price:45,avail:true},
+  {id:642,name:"San Miguel Cerveza Negra",cat:"Beer",price:60,avail:true},
+  // Wine
+  {id:651,name:"Red Wine",cat:"Wine",price:80,avail:true},
+  {id:652,name:"White Wine",cat:"Wine",price:80,avail:true},
+  // Spanish Drinks
+  {id:661,name:"Gili Sangria",cat:"Spanish Drinks",price:55,avail:true},
+  {id:662,name:"Calimocho",cat:"Spanish Drinks",price:60,avail:true},
+  {id:663,name:"Tinto Verano",cat:"Spanish Drinks",price:60,avail:true},
+  // Cocktails
+  {id:701,name:"Signature Blue Mata",cat:"Cocktails",price:80,avail:true},
+  {id:702,name:"Margarita",cat:"Cocktails",price:80,avail:true},
+  {id:703,name:"Gin Fizz",cat:"Cocktails",price:80,avail:true},
+  {id:704,name:"Pina Colada",cat:"Cocktails",price:80,avail:true},
+  {id:705,name:"Lime Daiquiri",cat:"Cocktails",price:80,avail:true},
+  {id:706,name:"Arak Attack",cat:"Cocktails",price:80,avail:true},
+  // Premium Cocktails
+  {id:711,name:"Negroni",cat:"Premium Cocktails",price:110,avail:true},
+  {id:712,name:"Lime Margarita",cat:"Premium Cocktails",price:110,avail:true},
+  {id:713,name:"Gin Fizz (Premium)",cat:"Premium Cocktails",price:110,avail:true},
+  {id:714,name:"Lime Daiquiri (Premium)",cat:"Premium Cocktails",price:110,avail:true},
+  {id:715,name:"Tequila Sunrise",cat:"Premium Cocktails",price:110,avail:true},
+  // Minibar
+  {id:901,name:"Polaris Sodawater",cat:"Minibar",price:25,avail:true},
+  {id:902,name:"Coca Cola",cat:"Minibar",price:25,avail:true},
+  {id:903,name:"Coke Zero",cat:"Minibar",price:25,avail:true},
+  {id:904,name:"Sprite",cat:"Minibar",price:25,avail:true},
+  {id:905,name:"Small Bintang",cat:"Minibar",price:45,avail:true},
+  {id:906,name:"Cerveza Negra",cat:"Minibar",price:60,avail:true},
+  {id:907,name:"San Miguel",cat:"Minibar",price:55,avail:true},
+  {id:908,name:"Mineral Water",cat:"Minibar",price:0,avail:true},
+];
+var tables=Array.from({length:15},function(_,i){return {num:i+1,status:'free'};});
+var rooms=[],selRoom=null;
+var mode='restaurant';
+var billRoom=null;
+var roomBillPending=false;
+var order=[],selTable=null,curCat='',existingOrders=[];
+
+function onLangChange(){renderAll();}
+
+function renderAll(){
+  // Labels
+  document.getElementById('tbl-label').textContent=mode==='minibar'?(selRoom?selRoom.name:t('selectRoom')):(selTable?tw()+selTable:t('selectTable'));
+  document.getElementById('panel-title').textContent=t('order');
+  document.getElementById('clr-btn').textContent=t('clear');
+  document.getElementById('snd-btn').textContent=t('send');
+  document.getElementById('login-btn').textContent=t('signIn');
+  document.getElementById('total-label').textContent=t('total');
+  document.getElementById('topbar-title').textContent='POS Terminal';
+  document.getElementById('ver-tag').textContent='240824 2015';
+  document.getElementById('mode-restaurant').textContent=t('restaurant');
+  document.getElementById('mode-minibar').textContent=t('minibar');
+  document.getElementById('manual-btn').textContent=t('manualAdd');
+  document.getElementById('manual-title').textContent=t('manualTitle');
+  document.getElementById('manual-name-label').textContent=t('manualName');
+  document.getElementById('manual-price-label').textContent=t('manualPrice');
+  document.getElementById('manual-qty-label').textContent=t('manualQty');
+  document.getElementById('manual-cat-label').textContent=t('manualCat');
+  document.getElementById('manual-cat-kitchen').textContent=t('manualKitchen');
+  document.getElementById('manual-cat-bar').textContent=t('manualBar');
+  document.getElementById('manual-add-btn').textContent=t('manualAddBtn');
+  document.getElementById('manual-cat-wrap').style.display=mode==='minibar'?'none':'block';
+  document.getElementById('release-table-btn').textContent=t('releaseTable');
+  updateRbToggle();
+  document.querySelector('.note-area textarea').placeholder=t('note');
+  buildCats();buildMenu();
+  if(mode==='minibar'){renderRooms();}else{renderTables();}
+  renderOrder();
+}
+
+function setMode(m){
+  if(mode===m)return;
+  mode=m;
+  order=[];curCat='';selTable=null;billRoom=null;roomBillPending=false;
+  document.getElementById('mode-restaurant').classList.toggle('on',m==='restaurant');
+  document.getElementById('mode-minibar').classList.toggle('on',m==='minibar');
+  document.getElementById('room-bill-bar').style.display='none';
+  document.getElementById('rb-rooms').style.display='none';
+  renderAll();
+  if(m==='minibar'){loadRooms();}else{loadTables();}
+}
+
+function renderTables(){
+  var g=document.getElementById('tgrid');
+  g.innerHTML=tables.map(function(tb){
+    var cls='ttile'+(tb.status==='occupied'?' occ':'')+(selTable===tb.num?' sel':'');
+    return '<div class="'+cls+'" data-n="'+tb.num+'"><div class="ttile-n">'+tb.num+'</div><div class="ttile-s">'+t(tb.status==='occupied'?'busy':'free')+'</div></div>';
+  }).join('');
+  g.onclick=function(e){var el=e.target.closest('.ttile');if(el)selectTable(+el.dataset.n);};
+}
+
+function renderRooms(){
+  var g=document.getElementById('tgrid');
+  g.innerHTML=rooms.map(function(rm){
+    var cls='ttile'+(rm.status==='occupied'?' occ':'')+(selRoom&&selRoom.id===rm.id?' sel':'');
+    return '<div class="'+cls+'" data-id="'+rm.id+'" style="min-width:64px"><div class="ttile-n" style="font-size:11px">'+rm.name+'</div><div class="ttile-s">'+t(rm.status==='occupied'?'busy':'free')+'</div></div>';
+  }).join('');
+  g.onclick=function(e){var el=e.target.closest('.ttile');if(el)selectRoom(+el.dataset.id);};
+}
+
+function selectTable(n){
+  selTable=n;
+  renderTables();
+  updateBtn();
+  document.getElementById('tbl-label').textContent=tw()+n;
+  loadExistingOrders(n);
+  billRoom=null;roomBillPending=false;
+  document.getElementById('room-bill-bar').style.display='block';
+  document.getElementById('rb-rooms').style.display='none';
+  updateRbToggle();
+  updateReleaseBtn();
+}
+
+function selectRoom(id){
+  selRoom=rooms.find(function(r){return r.id===id;});
+  renderRooms();
+  updateBtn();
+  document.getElementById('tbl-label').textContent=selRoom?selRoom.name:t('selectRoom');
+  loadExistingOrders(null,id);
+}
+
+async function assignExistingOrdersToRoom(){
+  if(!billRoom||!selTable)return;
+  try{
+    await sbPatch('orders','table_number=eq.'+selTable+'&order_type=eq.restaurant&status=in.(new,cooking,making,ready)',{room_id:billRoom.id});
+    logAction('Zimmerrechnung zugeordnet','Tisch '+selTable+' → '+billRoom.name);
+    notify('✓ '+t('billToRoomOn')+billRoom.name);
+    loadExistingOrders(selTable);
+  }catch(e){notify('⚠ '+e.message);}
+  updateReleaseBtn();
+}
+
+function updateReleaseBtn(){
+  var el=document.getElementById('release-table-btn');
+  if(!el)return;
+  el.style.display=billRoom?'block':'none';
+}
+
+async function releaseTable(){
+  if(!billRoom||!selTable)return;
+  var confirmMsg=t('releaseConfirm').replace('{t}',selTable).replace('{r}',billRoom.name);
+  if(!confirm(confirmMsg))return;
+  try{
+    await sbPatch('orders','table_number=eq.'+selTable+'&order_type=eq.restaurant&room_id=eq.'+billRoom.id+'&status=in.(new,cooking,making,ready)',{table_number:null});
+    logAction('Tisch freigegeben (Zimmerrechnung läuft weiter)','Tisch '+selTable+' → '+billRoom.name);
+    notify('✓ '+t('tableReleased'));
+    selTable=null;billRoom=null;
+    document.getElementById('room-bill-bar').style.display='none';
+    document.getElementById('tbl-label').textContent=t('selectTable');
+    document.getElementById('existing-orders').style.display='none';
+    loadTables();
+    renderTables();
+  }catch(e){notify('⚠ '+e.message);}
+}
+
+function updateRbToggle(){
+  var btn=document.getElementById('rb-toggle');
+  if(billRoom){
+    btn.textContent=t('billToRoomOn')+billRoom.name;
+    btn.classList.add('on');
+  }else{
+    btn.textContent=t('billToRoom');
+    btn.classList.remove('on');
+  }
+}
+
+async function toggleRoomBill(){
+  var wrap=document.getElementById('rb-rooms');
+  if(billRoom){
+    billRoom=null;
+    updateRbToggle();
+    wrap.style.display='none';
+    updateBtn();
+    return;
+  }
+  if(!rooms.length){
+    try{rooms=await sbGet('rooms','active=eq.true&order=sort_order&select=id,name');rooms.forEach(function(r){r.status='free';});}catch(e){rooms=[];}
+  }
+  wrap.innerHTML=rooms.map(function(r){
+    return '<button class="rb-room-btn" data-id="'+r.id+'">'+r.name+'</button>';
+  }).join('')+'<button class="rb-room-btn rb-cancel" data-cancel="1">✕ '+t('cancel')+'</button>';
+  wrap.style.display='flex';
+  roomBillPending=true;
+  updateBtn();
+}
+document.addEventListener('click',function(e){
+  var cancelBtn=e.target.closest('.rb-cancel');
+  if(cancelBtn){
+    roomBillPending=false;billRoom=null;
+    document.getElementById('rb-rooms').style.display='none';
+    updateRbToggle();updateBtn();
+    return;
+  }
+  var b=e.target.closest('.rb-room-btn');
+  if(b){
+    billRoom=rooms.find(function(r){return r.id===+b.dataset.id;});
+    roomBillPending=false;
+    updateRbToggle();
+    document.getElementById('rb-rooms').style.display='none';
+    assignExistingOrdersToRoom();
+  }
+});
+
+async function loadExistingOrders(n,roomId){
+  try{
+    var q=roomId
+      ?'select=id,status,total_k,created_at,order_items(name,quantity,category)&room_id=eq.'+roomId+'&order_type=eq.minibar&status=in.(new,cooking,making,ready)&order=created_at.desc&limit=10'
+      :'select=id,status,total_k,created_at,room_id,order_items(name,quantity,category),rooms(name)&table_number=eq.'+n+'&status=in.(new,cooking,making,ready)&order=created_at.desc&limit=5';
+    var d=await sbGet('orders',q);
+    existingOrders=d;
+    var box=document.getElementById('existing-orders');
+    if(!d.length){box.style.display='none';}
+    else{
+      box.style.display='block';
+      var sum=d.reduce(function(s,o){return s+(o.total_k||0);},0);
+      document.getElementById('existing-title').textContent=t('openOrder')+' ('+d.length+') · Rp '+sum+'k';
+      document.getElementById('existing-items').innerHTML=d.map(function(o){
+        var items=(o.order_items||[]).map(function(i){return i.quantity+'× '+i.name;}).join(', ');
+        var mins=Math.round((Date.now()-new Date(o.created_at).getTime())/60000);
+        return '<div class="existing-item">#'+o.id+' · '+items+' · '+mins+' min · Rp '+(o.total_k||0)+'k</div>';
+      }).join('');
+    }
+    // Falls dieser Tisch bereits einer Zimmerrechnung zugeordnet ist: Freigeben-Option sofort anzeigen
+    if(!roomId&&mode==='restaurant'){
+      var roomBilled=d.find(function(o){return o.room_id;});
+      if(roomBilled){
+        billRoom={id:roomBilled.room_id,name:roomBilled.rooms?roomBilled.rooms.name:'?'};
+        updateRbToggle();
+        document.getElementById('rb-rooms').style.display='none';
+        updateReleaseBtn();
+      }
+    }
+  }catch(e){document.getElementById('existing-orders').style.display='none';}
+}
+
+function buildCats(){
+  var bar=document.getElementById('catbar');
+  if(mode==='minibar'){bar.innerHTML='';bar.onclick=null;return;}
+  var cats=[''];
+  menu.forEach(function(m){if(m.cat!=='Minibar'&&cats.indexOf(m.cat)<0)cats.push(m.cat);});
+  bar.innerHTML=cats.map(function(c){
+    return '<button class="cbtn'+(curCat===c?' on':'')+'" data-c="'+c+'">'+(c||t('allCats'))+'</button>';
+  }).join('');
+  bar.onclick=function(e){var b=e.target.closest('.cbtn');if(b){curCat=b.dataset.c;buildCats();buildMenu();}};
+}
+
+function buildMenu(){
+  var base=mode==='minibar'?menu.filter(function(m){return m.cat==='Minibar';}):menu.filter(function(m){return m.cat!=='Minibar';});
+  var filtered=curCat?base.filter(function(m){return m.cat===curCat;}):base;
+  var g=document.getElementById('mgrid');
+  g.innerHTML=filtered.map(function(m){
+    var inO=order.find(function(o){return o.id===m.id;});
+    return '<div class="mcard" data-id="'+m.id+'">'+
+      '<div class="mcard-cat">'+m.cat+'</div>'+
+      '<div class="mcard-name">'+m.name+'</div>'+
+      '<div class="mcard-price">Rp '+m.price+'k</div>'+
+      (inO?'<div class="mcard-badge">'+inO.qty+'</div>':'')+
+      '</div>';
+  }).join('');
+  g.onclick=function(e){var el=e.target.closest('.mcard');if(el)addItem(+el.dataset.id);};
+}
+
+function addItem(id){
+  var m=menu.find(function(x){return x.id===id;});
+  if(!m)return;
+  var ex=order.find(function(o){return o.id===id;});
+  if(ex){ex.qty++;}else{order.push({id:m.id,name:m.name,price:m.price,cat:m.cat,qty:1});}
+  renderOrder();buildMenu();updateFab();
+}
+
+var manualCat='Tapas';
+function openManualAdd(){
+  document.getElementById('manual-name').value='';
+  document.getElementById('manual-price').value='';
+  document.getElementById('manual-qty').value='1';
+  manualCat='Tapas';
+  document.getElementById('manual-cat-kitchen').classList.add('on');
+  document.getElementById('manual-cat-bar').classList.remove('on');
+  document.getElementById('manual-overlay').classList.add('show');
+}
+function closeManualAdd(){document.getElementById('manual-overlay').classList.remove('show');}
+document.addEventListener('click',function(e){
+  var b=e.target.closest('.mcatbtn');
+  if(b){
+    manualCat=b.dataset.c;
+    document.querySelectorAll('.mcatbtn').forEach(function(x){x.classList.remove('on');});
+    b.classList.add('on');
+  }
+});
+function addManualItem(){
+  var name=document.getElementById('manual-name').value.trim();
+  var price=parseFloat((document.getElementById('manual-price').value||'').replace(',','.'))||0;
+  var qty=parseInt(document.getElementById('manual-qty').value)||1;
+  if(qty<1)qty=1;
+  if(!name||price<=0){notify('⚠ '+t('manualFillAll'));return;}
+  if(price>=1000){
+    var suggested=Math.round(price/1000);
+    var msg=t('priceWarn').replace('{p}',price).replace('{s}',suggested);
+    if(!confirm(msg))return;
+  }
+  var cat=mode==='minibar'?'Minibar':manualCat;
+  var id='manual_'+Date.now();
+  order.push({id:id,name:name,price:price,cat:cat,qty:qty});
+  closeManualAdd();
+  renderOrder();buildMenu();updateFab();
+}
+
+function changeQty(id,d){
+  var i=order.findIndex(function(o){return String(o.id)===String(id);});
+  if(i<0)return;
+  order[i].qty+=d;
+  if(order[i].qty<=0)order.splice(i,1);
+  renderOrder();buildMenu();updateFab();
+}
+
+function removeOrderItem(id){
+  var i=order.findIndex(function(o){return String(o.id)===String(id);});
+  if(i<0)return;
+  order.splice(i,1);
+  renderOrder();buildMenu();updateFab();
+}
+
+function clearOrder(){order=[];renderOrder();buildMenu();updateFab();closeCart();}
+
+function renderOrder(){
+  var list=document.getElementById('olist');
+  document.getElementById('panel-count').textContent=order.length?'('+order.length+')':'';
+  if(!order.length){
+    list.innerHTML='<div class="oempty">'+t('empty')+'</div>';
+    document.getElementById('ototal').textContent='Rp 0k';
+    updateBtn();return;
+  }
+  var total=order.reduce(function(s,o){return s+o.price*o.qty;},0);
+  list.innerHTML=order.map(function(o){
+    return '<div class="oitem" data-id="'+o.id+'">'+
+      '<div class="oitem-info"><div class="oitem-name">'+o.name+'</div><div class="oitem-price">Rp '+o.price+'k</div></div>'+
+      '<div class="qctrl">'+
+        '<div class="qbtn" data-act="dec">−</div>'+
+        '<span class="qn">'+o.qty+'</span>'+
+        '<div class="qbtn" data-act="inc">+</div>'+
+        '<div class="qbtn qbtn-del" data-act="del" title="Entfernen">✕</div>'+
+      '</div></div>';
+  }).join('');
+  document.getElementById('ototal').textContent='Rp '+total+'k';
+  updateBtn();
+}
+document.getElementById('olist').addEventListener('click',function(e){
+  var btn=e.target.closest('.qbtn');
+  if(!btn)return;
+  var row=e.target.closest('.oitem');
+  if(!row)return;
+  var id=row.dataset.id;
+  if(btn.dataset.act==='dec')changeQty(id,-1);
+  else if(btn.dataset.act==='inc')changeQty(id,1);
+  else if(btn.dataset.act==='del')removeOrderItem(id);
+});
+
+function updateBtn(){document.getElementById('snd-btn').classList.toggle('off',!(order.length&&(mode==='minibar'?selRoom:selTable))||roomBillPending);}
+function updateFab(){
+  var n=order.reduce(function(s,o){return s+o.qty;},0);
+  var fab=document.getElementById('fab');
+  fab.style.display=n>0?'flex':'none';
+  document.getElementById('fab-n').textContent=n;
+}
+function toggleCart(){
+  var p=document.getElementById('order-panel');
+  var b=document.getElementById('backdrop');
+  var open=p.classList.toggle('open');
+  b.classList.toggle('show',open);
+}
+function closeCart(){
+  document.getElementById('order-panel').classList.remove('open');
+  document.getElementById('backdrop').classList.remove('show');
+}
+
+async function sendOrder(){
+  if(mode==='minibar'){
+    if(!selRoom){notify('⚠ '+t('noRoomSel'));return;}
+  }else{
+    if(!selTable){notify('⚠ '+t('noTableSel'));return;}
+  }
+  if(roomBillPending){notify('⚠ '+t('roomBillPendingWarn'));return;}
+  if(!order.length){notify('⚠ '+t('cartEmpty'));return;}
+  var note=document.getElementById('onote').value;
+  var total=order.reduce(function(s,o){return s+o.price*o.qty;},0);
+  try{
+    var payload=mode==='minibar'
+      ?{room_id:selRoom.id,order_type:'minibar',note:note,status:'new',total_k:total}
+      :{table_number:selTable,order_type:'restaurant',room_id:billRoom?billRoom.id:null,note:note,status:'new',total_k:total};
+    var res=await sbPost('orders',payload);
+    var oid=res[0].id;
+    await sbPost('order_items',order.map(function(o){
+      return {order_id:oid,menu_item_id:(typeof o.id==='number'?o.id:null),name:o.name,price_k:o.price,quantity:o.qty,category:o.cat};
+    }));
+    var subLabel;
+    if(mode==='minibar'){
+      selRoom.status='occupied';
+      logAction('Minibar erfasst',selRoom.name+' · '+order.length+' Position(en) · Rp '+total+'k');
+      subLabel=selRoom.name+' · Rp '+total+'k';
+    }else{
+      var tb=tables.find(function(x){return x.num===selTable;});if(tb)tb.status='occupied';
+      logAction('Bestellung aufgegeben','Tisch '+selTable+(billRoom?' · Zimmerrechnung '+billRoom.name:'')+' · '+order.length+' Position(en) · Rp '+total+'k');
+      subLabel=tw()+selTable+(billRoom?' · 🏨 '+billRoom.name:'')+' · Rp '+total+'k';
+    }
+    var ov=document.getElementById('sent-ov');
+    document.getElementById('sent-msg').textContent=t('sent');
+    document.getElementById('sent-sub').textContent=subLabel;
+    ov.classList.add('show');
+    setTimeout(function(){
+      ov.classList.remove('show');
+      order=[];document.getElementById('onote').value='';
+      billRoom=null;updateRbToggle();
+      renderOrder();buildMenu();updateFab();closeCart();
+      if(mode==='minibar'){renderRooms();loadExistingOrders(null,selRoom.id);}
+      else{renderTables();loadExistingOrders(selTable);}
+    },2000);
+  }catch(e){notify('⚠ '+e.message);}
+}
+
+async function loadTables(){
+  try{
+    var d=await sbGet('orders','select=table_number&status=in.(new,cooking,making,ready)&order_type=eq.restaurant');
+    var busy=d.map(function(o){return o.table_number;});
+    tables.forEach(function(tb){tb.status=busy.indexOf(tb.num)>=0?'occupied':'free';});
+    if(mode==='restaurant')renderTables();
+  }catch(e){}
+}
+
+async function loadRooms(){
+  try{
+    if(!rooms.length){
+      rooms=await sbGet('rooms','active=eq.true&order=sort_order&select=id,name');
+      rooms.forEach(function(r){r.status='free';});
+    }
+    var d=await sbGet('orders','select=room_id&status=in.(new,cooking,making,ready)&order_type=eq.minibar');
+    var busy=d.map(function(o){return o.room_id;});
+    rooms.forEach(function(r){r.status=busy.indexOf(r.id)>=0?'occupied':'free';});
+    if(mode==='minibar')renderRooms();
+  }catch(e){}
+}
+
+function afterLogin(m){
+  currentStaff=m;
+  setLang(m.preferred_lang||'de');
+  logAction('Angemeldet','POS');
+  renderAll();loadTables();
+  setInterval(function(){if(mode==='minibar')loadRooms();else loadTables();},30000);
+}
+function afterLogout(){order=[];selTable=null;selRoom=null;mode='restaurant';clearOrder();}
+
+window.addEventListener('DOMContentLoaded',function(){
+  loadStaff();initPins();
+  renderAll();
+  document.getElementById('mode-bar').onclick=function(e){var b=e.target.closest('.mbtn');if(b)setMode(b.dataset.m);};
+  // Rücktaste/Geste soll die App nicht beenden — Abmeldung nur über den ⏻-Button
+  for(var _i=0;_i<8;_i++){history.pushState(null,'',location.href);}
+  window.addEventListener('popstate',function(){history.pushState(null,'',location.href);});
+});
+</script>
+</body>
+</html>

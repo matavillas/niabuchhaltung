@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<!-- Mata Villas Bar Rezepturen v2026-08-12 13:10 UTC -->
+<html>
+<head>
+<meta charset="UTF-8">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Bar Rezepturen — Mata Villas</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,Arial,sans-serif;background:#f5f2ed;color:#1a1815}
+.topbar{background:#fff;border-bottom:1px solid #ddd;padding:10px 14px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:99}
+.topbar img{height:34px;object-fit:contain}
+.lbs{display:flex;gap:4px;margin-left:auto}
+.lb{padding:6px 11px;border-radius:6px;font-size:12px;font-weight:700;border:1px solid #ddd;background:#f5f2ed;color:#777;cursor:pointer}
+.lb.on{background:#1a63a8;color:#fff;border-color:#1a63a8}
+.catbar{padding:8px 12px;background:#fff;border-bottom:1px solid #eee;display:flex;gap:6px;overflow-x:auto;scrollbar-width:none}
+.catbar::-webkit-scrollbar{display:none}
+.cb{flex-shrink:0;padding:6px 13px;border-radius:16px;font-size:12px;font-weight:700;border:1px solid #ddd;background:#f5f2ed;color:#666;cursor:pointer;white-space:nowrap}
+.cb.on{background:#1a63a8;color:#fff;border-color:#1a63a8}
+.content{padding:10px 12px;max-width:800px;margin:0 auto}
+.rc{background:#fff;border:1px solid #e0dcd5;border-radius:12px;margin-bottom:10px;overflow:hidden}
+.rl{display:flex;align-items:center;cursor:pointer}
+.rbar{width:5px;min-height:56px;align-self:stretch;flex-shrink:0}
+.rnames{flex:1;padding:13px 12px}
+.rn1{font-size:15px;font-weight:700;line-height:1.3}
+.rn2{font-size:12px;color:#aaa;margin-top:2px}
+.arr{padding:14px 14px 14px 0;font-size:13px;color:#bbb;flex-shrink:0;transition:transform .2s}
+.rd{display:none;padding:14px;border-top:1px solid #eee;background:#faf9f6}
+.rck{display:none}
+.rck:checked~.rd{display:block}
+.rck:checked~.rl .arr{transform:rotate(90deg)}
+.rg{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.rh{font-size:11px;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px}
+.it{width:100%;border-collapse:collapse}
+.it tr{border-bottom:1px solid #f0ede8}
+.it tr:last-child{border-bottom:none}
+.it td{padding:6px 2px;font-size:13px;line-height:1.4}
+.am{text-align:right;color:#1a63a8;font-weight:700;font-family:monospace;font-size:12px;width:80px;padding-left:6px}
+.sp{display:flex;gap:8px;margin-bottom:8px}
+.sn{width:20px;height:20px;border-radius:50%;background:#e8eef9;color:#1a63a8;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px}
+.st{font-size:13px;color:#555;line-height:1.55;flex:1}
+.note{margin-top:10px;font-size:12px;color:#999;font-style:italic;padding-top:8px;border-top:1px solid #eee}
+@media(max-width:500px){.rg{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <img id="logo" src="" alt="Mata Villas">
+  <div style="font-size:14px;font-weight:700;flex:1" id="page-title"></div>
+  <div class="lbs">
+    <button class="lb on" onclick="setLang('de')">DE</button>
+    <button class="lb" onclick="setLang('en')">EN</button>
+    <button class="lb" onclick="setLang('id')">ID</button>
+  </div>
+</div>
+<div style="text-align:right;padding:2px 10px 0;font-size:9px;color:#aaa;font-family:monospace">v2026-08-12 13:10</div>
+<div class="catbar" id="catbar"></div>
+<div class="content" id="content"></div>
+
+<script>
+var LOGO='data:image/jpeg;base64,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';
+document.getElementById('logo').src=LOGO;
+
+var lang='de', curCat='';
+
+var cats={
+  de:[['','Alle'],['Cocktails','Cocktails'],['Spanish Drinks','Spanish Drinks'],['Alkoholfrei','Alkoholfrei']],
+  en:[['','All'],['Cocktails','Cocktails'],['Spanish Drinks','Spanish Drinks'],['Alkoholfrei','Non-Alcoholic']],
+  id:[['','Semua'],['Cocktails','Koktail'],['Spanish Drinks','Minuman Spanyol'],['Alkoholfrei','Non-Alkohol']]
+};
+
+var catCols={'Cocktails':'#1a63a8','Spanish Drinks':'#a86e1a','Alkoholfrei':'#2d7a4f'};
+
+var head={
+  de:{i:'Zutaten',s:'Zubereitung'},
+  en:{i:'Ingredients',s:'Preparation'},
+  id:{i:'Bahan-bahan',s:'Cara Membuat'}
+};
+
+var R=[
+  {id:27,cat:'Cocktails',n:{de:'Signature Blue Mata',en:'Signature Blue Mata',id:'Signature Blue Mata'},
+   i:{de:[['Blue Curaçao','30 ml'],['Vodka','30 ml'],['Limettensaft (frisch)','20 ml'],['Lychee-Sirup','15 ml'],['Soda Water','auffüllen'],['Eis','n.B.']],
+      en:[['Blue Curaçao','30 ml'],['Vodka','30 ml'],['Fresh lime juice','20 ml'],['Lychee syrup','15 ml'],['Soda water','top up'],['Ice','as needed']],
+      id:[['Blue Curaçao','30 ml'],['Vodka','30 ml'],['Air jeruk nipis segar','20 ml'],['Sirup lychee','15 ml'],['Air soda','tambahkan'],['Es','secukupnya']]},
+   s:{de:['Glas mit Eis füllen.','Blue Curaçao, Vodka, Limettensaft und Lychee-Sirup in Shaker mit Eis geben.','Kräftig 15 Sekunden shaken.','Über das Eis im Glas abseihen.','Mit Soda Water auffüllen. Mit Limettenscheibe garnieren.'],
+      en:['Fill glass with ice.','Add Blue Curaçao, vodka, lime juice and lychee syrup to shaker with ice.','Shake vigorously 15 seconds.','Strain over ice in glass.','Top up with soda water. Garnish with lime slice.'],
+      id:['Isi gelas dengan es.','Masukkan Blue Curaçao, vodka, air jeruk nipis dan sirup lychee ke shaker berisi es.','Shake kuat 15 detik.','Saring ke atas es dalam gelas.','Tambahkan air soda. Hiasi dengan irisan jeruk nipis.']},
+   note:'Signature Drink der Mata Villas.'},
+  {id:28,cat:'Cocktails',n:{de:'Margarita',en:'Margarita',id:'Margarita'},
+   i:{de:[['Tequila','50 ml'],['Triple Sec / Cointreau','25 ml'],['Limettensaft (frisch)','25 ml'],['Salzrand','n.B.'],['Eis','n.B.']],
+      en:[['Tequila','50 ml'],['Triple Sec / Cointreau','25 ml'],['Fresh lime juice','25 ml'],['Salt rim','as needed'],['Ice','as needed']],
+      id:[['Tequila','50 ml'],['Triple Sec / Cointreau','25 ml'],['Air jeruk nipis segar','25 ml'],['Tepi gelas garam','secukupnya'],['Es','secukupnya']]},
+   s:{de:['Glasrand mit Limettenscheibe befeuchten und in Salz tauchen.','Tequila, Triple Sec und Limettensaft in Shaker mit Eis geben.','Kräftig shaken.','In gekühltes Glas abseihen oder über Eis servieren.','Mit Limettenscheibe garnieren.'],
+      en:['Moisten glass rim with lime and dip in salt.','Add tequila, triple sec and lime juice to shaker with ice.','Shake vigorously.','Strain into chilled glass or serve over ice.','Garnish with lime slice.'],
+      id:['Basahi tepi gelas dengan jeruk nipis dan celupkan ke garam.','Masukkan tequila, triple sec dan air jeruk nipis ke shaker berisi es.','Shake kuat.','Saring ke gelas dingin atau sajikan dengan es.','Hiasi dengan irisan jeruk nipis.']},
+   note:''},
+  {id:29,cat:'Cocktails',n:{de:'Gin Fizz',en:'Gin Fizz',id:'Gin Fizz'},
+   i:{de:[['Gin','50 ml'],['Limettensaft (frisch)','20 ml'],['Zuckersirup','15 ml'],['Soda Water','auffüllen'],['Eis','n.B.']],
+      en:[['Gin','50 ml'],['Fresh lime juice','20 ml'],['Sugar syrup','15 ml'],['Soda water','top up'],['Ice','as needed']],
+      id:[['Gin','50 ml'],['Air jeruk nipis segar','20 ml'],['Sirup gula','15 ml'],['Air soda','tambahkan'],['Es','secukupnya']]},
+   s:{de:['Gin, Limettensaft und Zuckersirup in Shaker mit Eis geben.','Kräftig shaken.','In Highball-Glas über frischem Eis abseihen.','Mit Soda Water auffüllen.','Mit Limettenscheibe garnieren.'],
+      en:['Add gin, lime juice and sugar syrup to shaker with ice.','Shake vigorously.','Strain into highball glass over fresh ice.','Top up with soda water.','Garnish with lime slice.'],
+      id:['Masukkan gin, air jeruk nipis dan sirup gula ke shaker berisi es.','Shake kuat.','Saring ke gelas highball di atas es segar.','Tambahkan air soda.','Hiasi dengan irisan jeruk nipis.']},
+   note:''},
+  {id:30,cat:'Cocktails',n:{de:'Pina Colada',en:'Pina Colada',id:'Pina Colada'},
+   i:{de:[['Weißer Rum','50 ml'],['Kokosnusssirup / Kokosmilch','30 ml'],['Ananassaft','80 ml'],['Crushed Ice','1 Tasse']],
+      en:[['White rum','50 ml'],['Coconut syrup / coconut milk','30 ml'],['Pineapple juice','80 ml'],['Crushed ice','1 cup']],
+      id:[['Rum putih','50 ml'],['Sirup kelapa / santan','30 ml'],['Jus nanas','80 ml'],['Es serut','1 gelas']]},
+   s:{de:['Rum, Kokosnusssirup und Ananassaft in Blender mit Crushed Ice geben.','Cremig blenden.','In gekühltes Glas füllen.','Mit Ananasscheibe und Cocktailkirsche garnieren.'],
+      en:['Add rum, coconut syrup and pineapple juice to blender with crushed ice.','Blend until creamy.','Pour into chilled glass.','Garnish with pineapple slice and cocktail cherry.'],
+      id:['Masukkan rum, sirup kelapa dan jus nanas ke blender dengan es serut.','Blender hingga krim.','Tuang ke gelas dingin.','Hiasi dengan irisan nanas dan ceri koktail.']},
+   note:''},
+  {id:31,cat:'Cocktails',n:{de:'Lime Daiquiri',en:'Lime Daiquiri',id:'Lime Daiquiri'},
+   i:{de:[['Weißer Rum','50 ml'],['Limettensaft (frisch)','25 ml'],['Zuckersirup','15 ml'],['Eis','n.B.']],
+      en:[['White rum','50 ml'],['Fresh lime juice','25 ml'],['Sugar syrup','15 ml'],['Ice','as needed']],
+      id:[['Rum putih','50 ml'],['Air jeruk nipis segar','25 ml'],['Sirup gula','15 ml'],['Es','secukupnya']]},
+   s:{de:['Rum, Limettensaft und Zuckersirup in Shaker mit Eis geben.','Kräftig shaken.','In gekühltes Cocktailglas abseihen.','Mit Limettenzeste garnieren.'],
+      en:['Add rum, lime juice and sugar syrup to shaker with ice.','Shake vigorously.','Strain into chilled cocktail glass.','Garnish with lime zest.'],
+      id:['Masukkan rum, air jeruk nipis dan sirup gula ke shaker berisi es.','Shake kuat.','Saring ke gelas koktail dingin.','Hiasi dengan kulit jeruk nipis.']},
+   note:''},
+  {id:32,cat:'Cocktails',n:{de:'Arak Attack',en:'Arak Attack',id:'Arak Attack'},
+   i:{de:[['Arak (Bali)','40 ml'],['Orangensaft (frisch)','60 ml'],['Grenadine','10 ml'],['Eis','n.B.']],
+      en:[['Arak (Bali)','40 ml'],['Fresh orange juice','60 ml'],['Grenadine','10 ml'],['Ice','as needed']],
+      id:[['Arak (Bali)','40 ml'],['Jus jeruk segar','60 ml'],['Grenadine','10 ml'],['Es','secukupnya']]},
+   s:{de:['Glas mit Eis füllen.','Arak und Orangensaft einrühren.','Grenadine langsam einlaufen lassen für Layering-Effekt.','Mit Orangenscheibe garnieren.'],
+      en:['Fill glass with ice.','Stir in arak and orange juice.','Slowly pour in grenadine for layering effect.','Garnish with orange slice.'],
+      id:['Isi gelas dengan es.','Aduk arak dan jus jeruk.','Tuangkan grenadine perlahan untuk efek layering.','Hiasi dengan irisan jeruk.']},
+   note:'Arak Bali verwenden.'},
+  {id:33,cat:'Spanish Drinks',n:{de:'Gili Sangria',en:'Gili Sangria',id:'Gili Sangria'},
+   i:{de:[['Rotwein','600 ml'],['Orangensaft (frisch)','200 ml'],['Brandy','80 ml'],['Zuckersirup','60 ml'],['Orangenscheiben','n.B.'],['Zitronenscheiben','n.B.'],['Eis','n.B.']],
+      en:[['Red wine','600 ml'],['Fresh orange juice','200 ml'],['Brandy','80 ml'],['Sugar syrup','60 ml'],['Orange slices','as needed'],['Lemon slices','as needed'],['Ice','as needed']],
+      id:[['Anggur merah','600 ml'],['Jus jeruk segar','200 ml'],['Brandy','80 ml'],['Sirup gula','60 ml'],['Irisan jeruk manis','secukupnya'],['Irisan lemon','secukupnya'],['Es','secukupnya']]},
+   s:{de:['Rotwein, Orangensaft, Brandy und Zuckersirup in Krug gut mischen.','Orangen- und Zitronenscheiben hinzufügen.','Mindestens 1 Stunde — besser über Nacht — kühlstellen.','Mit reichlich Eis in Gläser füllen und servieren.'],
+      en:['Mix red wine, orange juice, brandy and sugar syrup well in a jug.','Add orange and lemon slices.','Refrigerate at least 1 hour — overnight is better.','Pour over plenty of ice and serve.'],
+      id:['Campur anggur merah, jus jeruk, brandy dan sirup gula dalam kendi.','Tambahkan irisan jeruk manis dan lemon.','Dinginkan minimal 1 jam — semalam lebih baik.','Tuang ke gelas dengan banyak es dan sajikan.']},
+   note:'Für 4 Portionen. Besser am Vortag ansetzen.'},
+  {id:34,cat:'Spanish Drinks',n:{de:'Calimocho',en:'Calimocho',id:'Calimocho'},
+   i:{de:[['Rotwein','150 ml'],['Cola','150 ml'],['Eis','n.B.'],['Zitronenscheibe','1 Stück']],
+      en:[['Red wine','150 ml'],['Cola','150 ml'],['Ice','as needed'],['Lemon slice','1 pc']],
+      id:[['Anggur merah','150 ml'],['Cola','150 ml'],['Es','secukupnya'],['Irisan lemon','1 buah']]},
+   s:{de:['Glas mit Eis füllen.','Rotwein und Cola gleichzeitig einschenken (50/50).','Kurz und leicht umrühren.','Mit Zitronenscheibe garnieren.'],
+      en:['Fill glass with ice.','Pour red wine and cola simultaneously (50/50).','Stir briefly and gently.','Garnish with lemon slice.'],
+      id:['Isi gelas dengan es.','Tuang anggur merah dan cola secara bersamaan (50/50).','Aduk sebentar dan ringan.','Hiasi dengan irisan lemon.']},
+   note:''},
+  {id:35,cat:'Spanish Drinks',n:{de:'Tinto Verano',en:'Tinto Verano',id:'Tinto Verano'},
+   i:{de:[['Rotwein','150 ml'],['Limonade oder Soda','150 ml'],['Eis','n.B.'],['Zitronenscheibe','1 Stück']],
+      en:[['Red wine','150 ml'],['Lemonade or soda','150 ml'],['Ice','as needed'],['Lemon slice','1 pc']],
+      id:[['Anggur merah','150 ml'],['Limonade atau soda','150 ml'],['Es','secukupnya'],['Irisan lemon','1 buah']]},
+   s:{de:['Glas mit Eis füllen.','Rotwein einschenken.','Limonade vorsichtig hinzufügen.','Mit Zitronenscheibe garnieren.'],
+      en:['Fill glass with ice.','Pour in red wine.','Carefully add lemonade.','Garnish with lemon slice.'],
+      id:['Isi gelas dengan es.','Tuang anggur merah.','Tambahkan limonade dengan hati-hati.','Hiasi dengan irisan lemon.']},
+   note:''},
+  {id:36,cat:'Alkoholfrei',n:{de:'Tapache',en:'Tapache',id:'Tapache'},
+   i:{de:[['Zucker','9 EL'],['Wasser','2 l'],['Schalen von 2 Ananas','2 Stück'],['Zimt, Nelke oder Ingwer','n.B.']],
+      en:[['Sugar','9 tbsp'],['Water','2 l'],['Peels of 2 pineapples','2 pcs'],['Cinnamon, clove or ginger','as needed']],
+      id:[['Gula','9 sdm'],['Air','2 l'],['Kulit 2 nanas','2 buah'],['Kayu manis, cengkeh atau jahe','secukupnya']]},
+   s:{de:['Alle Zutaten in einem Glas- oder Keramikbehälter mischen.','Fermentieren lassen (1-2 Tage).','Abseihen und kalt servieren.'],
+      en:['Mix all ingredients in a glass or ceramic container.','Allow to ferment (1-2 days).','Strain and serve cold.'],
+      id:['Campur semua bahan dalam wadah kaca atau keramik.','Biarkan fermentasi (1-2 hari).','Saring dan sajikan dingin.']},
+   note:'Leicht fermentiertes mexikanisches Ananasgetränk.'},
+];
+
+var TITLE={de:'Bar Rezepturen',en:'Bar Recipes',id:'Resep Bar'};
+function setLang(l){
+  lang=l;
+  document.querySelectorAll('.lb').forEach(function(b,i){b.classList.toggle('on',['de','en','id'][i]===l);});
+  document.getElementById('page-title').textContent=TITLE[lang];
+  renderCatBar();
+  renderRecipes();
+}
+
+function renderCatBar(){
+  var bar=document.getElementById('catbar');
+  bar.innerHTML=cats[lang].map(function(c){
+    return '<span class="cb'+(curCat===c[0]?' on':'')+'" onclick="filterCat(\''+c[0]+'\')">'+c[1]+'</span>';
+  }).join('');
+}
+
+function filterCat(cat){
+  curCat=cat;
+  renderCatBar();
+  renderRecipes();
+}
+
+function renderRecipes(){
+  var filtered=curCat?R.filter(function(r){return r.cat===curCat;}):R;
+  var col=function(cat){return catCols[cat]||'#888';};
+  document.getElementById('content').innerHTML=filtered.map(function(r){
+    var nm=r.n[lang];
+    var others=['de','en','id'].filter(function(l2){return l2!==lang;}).map(function(l2){return r.n[l2];}).join(' / ');
+    var ings=r.i[lang].map(function(x){return'<tr><td>'+x[0]+'</td><td class="am">'+x[1]+'</td></tr>';}).join('');
+    var steps=r.s[lang].map(function(s,i){return'<div class="sp"><div class="sn">'+(i+1)+'</div><div class="st">'+s+'</div></div>';}).join('');
+    var note=r.note?'<div class="note">'+r.note+'</div>':'';
+    return '<div class="rc">'
+      +'<input type="checkbox" class="rck" id="ck-'+r.id+'">'
+      +'<label class="rl" for="ck-'+r.id+'">'
+      +'<div class="rbar" style="background:'+col(r.cat)+'"></div>'
+      +'<div class="rnames"><div class="rn1">'+nm+'</div><div class="rn2">'+others+'</div></div>'
+      +'<div class="arr">▶</div></label>'
+      +'<div class="rd"><div class="rg">'
+      +'<div><div class="rh">'+head[lang].i+'</div><table class="it">'+ings+'</table></div>'
+      +'<div><div class="rh">'+head[lang].s+'</div>'+steps+'</div>'
+      +'</div>'+note+'</div></div>';
+  }).join('');
+}
+
+window.addEventListener('DOMContentLoaded',function(){
+  document.getElementById('page-title').textContent=TITLE[lang];
+  renderCatBar();
+  renderRecipes();
+});
+</script>
+</body>
+</html>
