@@ -31,7 +31,11 @@ export default function Kassenbuch() {
     let all = [];
     let from = 0;
     while (true) {
-      let query = supabase.from('kassenbuch').select('*').order('datum', { ascending: false });
+      let query = supabase.from('kassenbuch').select('*')
+        .order('datum', { ascending: false })
+        .order('sortierung', { ascending: false, nullsFirst: false })
+        .order('created_at', { ascending: false })
+        .order('id', { ascending: false });
       if (year !== 'alle') {
         query = query.gte('datum', `${year}-01-01`).lte('datum', `${year}-12-31`);
       }
