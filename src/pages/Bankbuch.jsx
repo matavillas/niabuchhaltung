@@ -18,8 +18,11 @@ const GROUP_COLORS = ['#e8a33d', '#4f8fd6'];
 
 // Split-Buchungen: eine Bankbewegung, auf mehrere Zeilen aufgeteilt.
 // Gleiche Kontonummer + Datum + Saldo + Bankauszug-Text = derselbe Umsatz.
+// Ohne Bankauszug-Text oder Saldo lässt sich nichts sicher zuordnen -> keine Gruppe.
 function groupKey(r) {
-  return [r.konto_nr, r.datum, r.saldo, (r.remarks || '').trim()].join('|');
+  const remarks = (r.remarks || '').trim();
+  if (!remarks || r.saldo === null || r.saldo === undefined || r.saldo === '') return `id|${r.id}`;
+  return [r.konto_nr, r.datum, r.saldo, remarks].join('|');
 }
 
 function AutoTextarea({ value, onChange, minRows = 1 }) {
