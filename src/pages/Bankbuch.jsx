@@ -8,12 +8,39 @@ const YEAR_OPTIONS = [
   { value: 'alle', label: 'Gesamter Zeitraum (2023–2026)' },
 ];
 const STATUSES = ['⚠️', '✅', '✔️', '📷'];
+const STATUS_FILTERS = [
+  { value: '', label: 'Alle Status' },
+  { value: 'offen', label: '⚠️ offen' },
+  { value: 'geklaert', label: '✅ geklärt' },
+  { value: '📷', label: '📷 Beleg fehlt' },
+];
+const GROUP_COLORS = ['#e8a33d', '#4f8fd6'];
+
+// Split-Buchungen: eine Bankbewegung, auf mehrere Zeilen aufgeteilt.
+// Gleiche Kontonummer + Datum + Saldo + Bankauszug-Text = derselbe Umsatz.
+function groupKey(r) {
+  return [r.konto_nr, r.datum, r.saldo, (r.remarks || '').trim()].join('|');
+}
+
+function AutoTextarea({ value, onChange, minRows = 1 }) {
+  return (
+    <textarea
+      value={value}
+      onChange={onChange}
+      rows={minRows}
+      ref={(el) => { if (el) { el.style.height = 'auto'; el.style.height = el.scrollHeight + 2 + 'px'; } }}
+      onInput={(e) => { e.target.style.height = 'auto'; e.target.style.height = e.target.scrollHeight + 2 + 'px'; }}
+      style={{ width: '100%', resize: 'vertical', fontFamily: 'inherit', fontSize: 13, padding: '5px 8px', boxSizing: 'border-box' }}
+    />
+  );
+}
 
 export default function Bankbuch() {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [accountFilter, setAccountFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
   const [yearFilter, setYearFilter] = useState('2026');
   const [search, setSearch] = useState('');
   const [dateFrom, setDateFrom] = useState('');
@@ -32,7 +59,10 @@ export default function Bankbuch() {
     let all = [];
     let from = 0;
     while (true) {
-      let query = supabase.from('bankbuch').select('*').order('datum', { ascending: false });
+      let query = supabase.from('bankbuch').select('*')
+        .order('datum', { ascending: false })
+        .order('konto_nr', { ascending: true })
+        .order('id', { ascending: true });
       if (year !== 'alle') {
         query = query.gte('datum', `${year}-01-01`).lte('datum', `${year}-12-31`);
       }
@@ -93,9 +123,38 @@ export default function Bankbuch() {
     if (amountMax && betrag > Number(amountMax)) return false;
     return true;
   };
-  const visible = rows.filter((r) => (!accountFilter || r.konto_nr === accountFilter) && bySearch(r) && byDate(r) && byAmount(r));
+  const byStatus = (r) => {
+    if (!statusFilter) return true;
+    if (statusFilter === 'offen') return r.status === '⚠️' || !r.status;
+    if (statusFilter === 'geklaert') return r.status === '✅' || r.status === '✔️';
+    return r.status === statusFilter;
+  };
+
+  // Gruppen über ALLE geladenen Zeilen bilden, damit eine Split-Buchung auch dann
+  // als Gruppe erkennbar bleibt, wenn der Filter nur einen Teil davon zeigt.
+  const groups = new Map();
+  for (const r of rows) {
+    const k = groupKey(r);
+    if (!groups.has(k)) groups.set(k, []);
+    groups.get(k).push(r);
+  }
+
+  const filtered = rows.filter((r) => (!accountFilter || r.konto_nr === accountFilter) && byStatus(r) && bySearch(r) && byDate(r) && byAmount(r));
+  // Zeilen einer Split-Buchung direkt untereinander anzeigen
+  const seen = new Set();
+  const visible = [];
+  const filteredIds = new Set(filtered.map((r) => r.id));
+  for (const r of filtered) {
+    const k = groupKey(r);
+    if (seen.has(k)) continue;
+    seen.add(k);
+    for (const m of groups.get(k)) if (filteredIds.has(m.id)) visible.push(m);
+  }
+  const splitKeys = [...groups.entries()].filter(([, v]) => v.length > 1).map(([k]) => k);
+  const splitColor = new Map(splitKeys.map((k, i) => [k, GROUP_COLORS[i % GROUP_COLORS.length]]));
+
   function resetFilters() {
-    setSearch(''); setDateFrom(''); setDateTo(''); setAmountMin(''); setAmountMax(''); setAccountFilter('');
+    setSearch(''); setDateFrom(''); setDateTo(''); setAmountMin(''); setAmountMax(''); setAccountFilter(''); setStatusFilter('');
   }
 
   return (
@@ -109,6 +168,9 @@ export default function Bankbuch() {
         <select value={accountFilter} onChange={(e) => setAccountFilter(e.target.value)}>
           <option value="">Alle Konten</option>
           {ACCOUNTS.map((a) => <option key={a} value={a}>...{a}</option>)}
+        </select>
+        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+          {STATUS_FILTERS.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
         </select>
         <input
           placeholder="Suche (Buchungstext, Notiz, Konto, Status)…"
@@ -129,7 +191,7 @@ export default function Bankbuch() {
         <input type="number" placeholder="min" value={amountMin} onChange={(e) => setAmountMin(e.target.value)} style={{ padding: '5px 8px', width: 110 }} />
         <label style={{ fontSize: 12, color: 'var(--color-muted)' }}>bis</label>
         <input type="number" placeholder="max" value={amountMax} onChange={(e) => setAmountMax(e.target.value)} style={{ padding: '5px 8px', width: 110 }} />
-        {(dateFrom || dateTo || amountMin || amountMax || search || accountFilter) && (
+        {(dateFrom || dateTo || amountMin || amountMax || search || accountFilter || statusFilter) && (
           <button onClick={resetFilters} style={btnGhost}>Filter zurücksetzen</button>
         )}
       </div>
@@ -137,9 +199,20 @@ export default function Bankbuch() {
       {editingId && draft && (
         <div style={{ background: 'var(--color-surface)', borderRadius: 8, boxShadow: 'var(--shadow)', padding: 14, marginBottom: 14 }}>
           <div style={{ fontWeight: 600, marginBottom: 10 }}>Bearbeite: {formatDatum(draft.datum)} — {draft.buchungstext}</div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: 8, alignItems: 'center', maxWidth: 700 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: 8, alignItems: 'center', maxWidth: 900 }}>
+            <label>Bankauszug-Text</label>
+            <div style={{ fontFamily: 'monospace', fontSize: 12, background: 'var(--color-bg, #f6f6f6)', padding: '5px 8px', borderRadius: 4, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+              {draft.remarks || '—'} <span style={{ fontFamily: 'inherit', fontSize: 11, color: 'var(--color-muted)' }}>(Original, nicht änderbar)</span>
+            </div>
+            {(groups.get(groupKey(draft)) || []).length > 1 && (<>
+              <label>Split-Buchung</label>
+              <div style={{ fontSize: 12.5 }}>
+                Teil einer aufgeteilten Bankbewegung ({groups.get(groupKey(draft)).length} Zeilen, Summe{' '}
+                {groups.get(groupKey(draft)).reduce((a, m) => a + Number(m.debit || 0) + Number(m.credit || 0), 0).toLocaleString('de-DE')})
+              </div>
+            </>)}
             <label>Buchungstext</label>
-            <input value={draft.buchungstext || ''} onChange={(e) => setDraft({ ...draft, buchungstext: e.target.value })} />
+            <AutoTextarea value={draft.buchungstext || ''} onChange={(e) => setDraft({ ...draft, buchungstext: e.target.value })} />
             <label>Ausgang</label>
             <div style={{ color: 'var(--color-muted)' }}>{Number(draft.debit || 0).toLocaleString('de-DE')} <span style={{ fontSize: 11 }}>(nicht änderbar)</span></div>
             <label>Eingang</label>
@@ -156,7 +229,7 @@ export default function Bankbuch() {
               {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
             </select>
             <label>Notiz</label>
-            <input value={draft.notiz || ''} onChange={(e) => setDraft({ ...draft, notiz: e.target.value })} />
+            <AutoTextarea minRows={2} value={draft.notiz || ''} onChange={(e) => setDraft({ ...draft, notiz: e.target.value })} />
             <label>Belege</label>
             <div>
               {draft.drive_urls.map((u, i) => (
@@ -197,9 +270,18 @@ export default function Bankbuch() {
           <tbody>
             {visible.map((r) => {
               const urls = Array.isArray(r.drive_urls) ? r.drive_urls : [];
+              const k = groupKey(r);
+              const grp = groups.get(k);
+              const color = splitColor.get(k);
+              const pos = grp.length > 1 ? grp.findIndex((m) => m.id === r.id) + 1 : 0;
+              const rowStyle = color ? { borderLeft: `4px solid ${color}`, background: pos > 1 ? 'rgba(0,0,0,0.02)' : undefined } : { borderLeft: '4px solid transparent' };
               return (
-                <tr key={r.id}>
-                  <td style={tdStyle}><button onClick={() => startEdit(r)} style={btnGhost}>Bearb.</button></td>
+                <tr key={r.id} style={rowStyle}
+                    title={pos ? `Split-Buchung ${pos}/${grp.length} — Summe ${grp.reduce((a, m) => a + Number(m.debit || 0) + Number(m.credit || 0), 0).toLocaleString('de-DE')}` : undefined}>
+                  <td style={tdStyle}>
+                    <button onClick={() => startEdit(r)} style={btnGhost}>Bearb.</button>
+                    {pos > 0 && <span style={{ marginLeft: 6, fontSize: 10.5, color }}>{pos}/{grp.length}</span>}
+                  </td>
                   <td style={tdStyle}>{formatDatum(r.datum)}</td>
                   <td style={tdStyle}>...{r.konto_nr}</td>
                   <td style={{ ...tdStyle, overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 170 }}>{r.buchungstext}</td>
@@ -225,7 +307,7 @@ export default function Bankbuch() {
 }
 
 const thStyle = { padding: '5px 8px', textAlign: 'left', borderBottom: '1px solid var(--color-border)' };
-const tdStyle = { padding: '3px 8px' };
+const tdStyle = { padding: '2px 8px', lineHeight: 1.35 };
 
 const btnPrimary = { background: 'var(--color-primary)', color: 'white', border: 'none', borderRadius: 6, padding: '6px 12px', fontSize: 12.5, fontWeight: 600 };
 const btnGhost = { background: 'none', border: '1px solid var(--color-border)', borderRadius: 6, padding: '5px 10px', fontSize: 12 };
