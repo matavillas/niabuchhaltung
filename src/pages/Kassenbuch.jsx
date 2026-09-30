@@ -11,12 +11,12 @@ const STATUSES = ['⚠️', '✅', '✔️', '📷'];
 const GESPERRT_VON = '2026-01-01';
 const GESPERRT_BIS = '2026-04-30';
 
-export default function Kassenbuch() {
+export default function Kassenbuch({ table = 'kassenbuch', title = 'Kassenbuch', defaultYear = '2026', allowNew = true, yearOptions = YEAR_OPTIONS }) {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
-  const [yearFilter, setYearFilter] = useState('2026');
+  const [yearFilter, setYearFilter] = useState(defaultYear);
   const [search, setSearch] = useState('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
@@ -36,7 +36,7 @@ export default function Kassenbuch() {
     let all = [];
     let from = 0;
     while (true) {
-      let query = supabase.from('kassenbuch').select('*')
+      let query = supabase.from(table).select('*')
         .order('datum', { ascending: false })
         .order('sortierung', { ascending: false, nullsFirst: false })
         .order('created_at', { ascending: false })
@@ -107,12 +107,12 @@ export default function Kassenbuch() {
       if (error) { setError(error.message); return; }
     } else {
       const { id, beschreibung, konto, status, notiz, datum, _orig } = draft;
-      const { error } = await supabase.from('kassenbuch').update({
+      const { error } = await supabase.from(table).update({
         beschreibung, konto, einnahme, ausgabe, status, notiz, drive_urls: urls,
       }).eq('id', id);
       if (error) { setSaving(false); setError(error.message); return; }
       // Betrag geändert -> Saldo ab diesem Datum neu berechnen
-      if (Number(_orig.einnahme || 0) !== einnahme || Number(_orig.ausgabe || 0) !== ausgabe) {
+      if (table === 'kassenbuch' && (Number(_orig.einnahme || 0) !== einnahme || Number(_orig.ausgabe || 0) !== ausgabe)) {
         const { error: e2 } = await supabase.rpc('kassenbuch_saldo_neu', { p_from: datum });
         if (e2) setError('Gespeichert, aber Saldo-Neuberechnung fehlgeschlagen: ' + e2.message);
       }
@@ -147,11 +147,11 @@ export default function Kassenbuch() {
 
   return (
     <div>
-      <h2 style={{ color: 'var(--color-primary)' }}>Kassenbuch</h2>
+      <h2 style={{ color: 'var(--color-primary)' }}>{title}</h2>
       {error && <div style={{ color: 'var(--color-danger)', marginBottom: 10 }}>{error}</div>}
       <div style={{ display: 'flex', gap: 10, marginBottom: 14 }}>
         <select value={yearFilter} onChange={(e) => setYearFilter(e.target.value)}>
-          {YEAR_OPTIONS.map((y) => <option key={y.value} value={y.value}>{y.label}</option>)}
+          {yearOptions.map((y) => <option key={y.value} value={y.value}>{y.label}</option>)}
         </select>
         <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
           <option value="">Alle Status</option>
@@ -169,7 +169,7 @@ export default function Kassenbuch() {
         <span style={{ marginLeft: 'auto', fontSize: 13, color: 'var(--color-muted)', alignSelf: 'center' }}>
           {loading ? 'Lädt…' : `${visible.length} Einträge`}
         </span>
-        <button onClick={startNew} style={btnPrimary} disabled={editingId !== null}>+ Neuer Eintrag</button>
+        {allowNew && <button onClick={startNew} style={btnPrimary} disabled={editingId !== null}>+ Neuer Eintrag</button>}
       </div>
       <div style={{ display: 'flex', gap: 10, marginBottom: 14, alignItems: 'center', flexWrap: 'wrap' }}>
         <label style={{ fontSize: 12, color: 'var(--color-muted)' }}>Datum von</label>
