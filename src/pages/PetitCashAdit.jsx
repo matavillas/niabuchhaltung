@@ -70,13 +70,13 @@ export default function PetitCashAdit() {
     else { setNeu({ datum: '', beschreibung: '', konto: '', einnahme: 0, ausgabe: 0 }); setAdding(false); load(); }
   }
 
-  if (loading) return <div>Lade Petit Cash Adit…</div>;
+  if (loading) return <div>Lade Petit Cash Manager…</div>;
 
   return (
     <div>
-      <h2 style={{ color: 'var(--color-primary)' }}>Petit Cash — Adit</h2>
+      <h2 style={{ color: 'var(--color-primary)' }}>Petit Cash Manager</h2>
       <p style={{ fontSize: 12.5, color: 'var(--color-muted)', marginTop: -6 }}>
-        Eigenständiges Kassenkonto, getrennt vom Hauptkassenbuch. Nur Zahlungen, die Adit tatsächlich selbst leistet, laufen hier durch.
+        Eigenständiges Kassenkonto, getrennt vom Hauptkassenbuch. Nur Zahlungen, die der Manager tatsächlich selbst leistet, laufen hier durch.
       </p>
       {error && <div style={{ color: 'var(--color-danger)', marginBottom: 10 }}>{error}</div>}
 

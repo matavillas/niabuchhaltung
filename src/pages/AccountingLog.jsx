@@ -9,7 +9,7 @@ const TABLE_LABELS = {
   kontenplan: 'Kontenplan',
   bookingcom_buchungen: 'Booking.com',
   agoda_buchungen: 'Agoda',
-  petit_cash_adit: 'Petit Cash Adit',
+  petit_cash_adit: 'Petit Cash Manager',
 };
 const ACTION_COLORS = { INSERT: '#1E7B45', UPDATE: '#2E86AB', DELETE: '#C0392B' };
 

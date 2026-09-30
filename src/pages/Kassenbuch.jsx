@@ -7,6 +7,7 @@ const YEAR_OPTIONS = [
   { value: 'alle', label: 'Gesamter Zeitraum (2023–2026)' },
 ];
 const STATUSES = ['⚠️', '✅', '✔️', '📷'];
+const MIN_NEU_DATUM = '2026-05-01'; // Jan–Apr 2026 und früher sind abgeschlossen
 
 export default function Kassenbuch() {
   const [rows, setRows] = useState([]);
@@ -23,6 +24,8 @@ export default function Kassenbuch() {
   const [editingId, setEditingId] = useState(null);
   const [draft, setDraft] = useState(null);
   const [newUrl, setNewUrl] = useState('');
+  const [isNew, setIsNew] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   async function load(year) {
     setLoading(true);
@@ -55,10 +58,21 @@ export default function Kassenbuch() {
   }, []);
 
   function startEdit(row) {
+    setIsNew(false);
     setEditingId(row.id);
-    setDraft({ ...row, drive_urls: Array.isArray(row.drive_urls) ? [...row.drive_urls] : [] });
+    setDraft({ ...row, drive_urls: Array.isArray(row.drive_urls) ? [...row.drive_urls] : [], _orig: { einnahme: row.einnahme, ausgabe: row.ausgabe } });
     setNewUrl('');
   }
+
+  function startNew() {
+    const heute = new Date().toISOString().slice(0, 10);
+    setIsNew(true);
+    setEditingId('neu');
+    setDraft({ datum: heute, beschreibung: '', lieferant: '', konto: '???', einnahme: '', ausgabe: '', status: '⚠️', notiz: '', drive_urls: [] });
+    setNewUrl('');
+  }
+
+  function closeForm() { setEditingId(null); setDraft(null); setIsNew(false); }
 
   function addUrl() {
     const u = newUrl.trim();
@@ -72,12 +86,38 @@ export default function Kassenbuch() {
   }
 
   async function saveEdit() {
-    const { id, beschreibung, konto, einnahme, ausgabe, status, notiz, drive_urls } = draft;
-    const { error } = await supabase.from('kassenbuch').update({
-      beschreibung, konto, einnahme: Number(einnahme) || 0, ausgabe: Number(ausgabe) || 0, status, notiz, drive_urls,
-    }).eq('id', id);
-    if (error) setError(error.message);
-    else { setEditingId(null); setDraft(null); load(yearFilter); }
+    setError('');
+    // Ein noch nicht per "+ Hinzufügen" übernommener Link wird mitgespeichert
+    const urls = newUrl.trim() ? [...draft.drive_urls, newUrl.trim()] : draft.drive_urls;
+    const einnahme = Number(draft.einnahme) || 0;
+    const ausgabe = Number(draft.ausgabe) || 0;
+    setSaving(true);
+    if (isNew) {
+      if (!draft.datum || !draft.beschreibung.trim()) { setSaving(false); setError('Datum und Beschreibung sind Pflicht.'); return; }
+      if (draft.datum < MIN_NEU_DATUM) { setSaving(false); setError('Bis 30.04.2026 ist abgeschlossen – bitte ein späteres Datum wählen.'); return; }
+      if ((einnahme > 0) === (ausgabe > 0)) { setSaving(false); setError('Bitte entweder Einnahme oder Ausgabe eintragen (nicht beides).'); return; }
+      const { error } = await supabase.rpc('kassenbuch_neu', {
+        p_datum: draft.datum, p_beschreibung: draft.beschreibung.trim(), p_lieferant: draft.lieferant || '',
+        p_konto: draft.konto, p_einnahme: einnahme, p_ausgabe: ausgabe, p_status: draft.status,
+        p_notiz: draft.notiz || null, p_drive_urls: urls,
+      });
+      setSaving(false);
+      if (error) { setError(error.message); return; }
+    } else {
+      const { id, beschreibung, konto, status, notiz, datum, _orig } = draft;
+      const { error } = await supabase.from('kassenbuch').update({
+        beschreibung, konto, einnahme, ausgabe, status, notiz, drive_urls: urls,
+      }).eq('id', id);
+      if (error) { setSaving(false); setError(error.message); return; }
+      // Betrag geändert -> Saldo ab diesem Datum neu berechnen
+      if (Number(_orig.einnahme || 0) !== einnahme || Number(_orig.ausgabe || 0) !== ausgabe) {
+        const { error: e2 } = await supabase.rpc('kassenbuch_saldo_neu', { p_from: datum });
+        if (e2) setError('Gespeichert, aber Saldo-Neuberechnung fehlgeschlagen: ' + e2.message);
+      }
+      setSaving(false);
+    }
+    closeForm();
+    load(yearFilter);
   }
 
   const bySearch = (r) => {
@@ -127,6 +167,7 @@ export default function Kassenbuch() {
         <span style={{ marginLeft: 'auto', fontSize: 13, color: 'var(--color-muted)', alignSelf: 'center' }}>
           {loading ? 'Lädt…' : `${visible.length} Einträge`}
         </span>
+        <button onClick={startNew} style={btnPrimary} disabled={editingId !== null}>+ Neuer Eintrag</button>
       </div>
       <div style={{ display: 'flex', gap: 10, marginBottom: 14, alignItems: 'center', flexWrap: 'wrap' }}>
         <label style={{ fontSize: 12, color: 'var(--color-muted)' }}>Datum von</label>
@@ -143,51 +184,50 @@ export default function Kassenbuch() {
       </div>
 
       {editingId && draft && (
-        <div style={{ background: 'var(--color-surface)', borderRadius: 8, boxShadow: 'var(--shadow)', padding: 14, marginBottom: 14 }}>
-          <div style={{ fontWeight: 600, marginBottom: 10 }}>Bearbeite: {formatDatum(draft.datum)} — {draft.beschreibung}</div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: 8, alignItems: 'center', maxWidth: 700 }}>
-            <label>Beschreibung</label>
-            <input value={draft.beschreibung || ''} onChange={(e) => setDraft({ ...draft, beschreibung: e.target.value })} />
-            <label>Konto</label>
-            <select value={draft.konto || ''} onChange={(e) => setDraft({ ...draft, konto: e.target.value })} style={{ width: 320 }}>
-              <option value="???">??? (ungeklärt)</option>
-              {konten.map((k) => <option key={k.code} value={k.code}>{k.code} — {k.name}</option>)}
-            </select>
-            <label>Einnahme</label>
-            <input type="number" value={draft.einnahme || 0} onChange={(e) => setDraft({ ...draft, einnahme: e.target.value })} style={{ width: 140 }} />
-            <label>Ausgabe</label>
-            <input type="number" value={draft.ausgabe || 0} onChange={(e) => setDraft({ ...draft, ausgabe: e.target.value })} style={{ width: 140 }} />
-            <label>Status</label>
-            <select value={draft.status || ''} onChange={(e) => setDraft({ ...draft, status: e.target.value })} style={{ width: 100 }}>
-              {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
-            </select>
-            <label>Notiz</label>
-            <input value={draft.notiz || ''} onChange={(e) => setDraft({ ...draft, notiz: e.target.value })} />
-            <label>Belege</label>
-            <div>
-              {draft.drive_urls.map((u, i) => (
-                <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 4 }}>
-                  <a href={u} target="_blank" rel="noreferrer" style={{ fontSize: 12.5, wordBreak: 'break-all' }}>{u}</a>
-                  <button onClick={() => removeUrl(i)} style={btnDanger}>✕</button>
-                </div>
-              ))}
-              <div style={{ display: 'flex', gap: 8 }}>
-                <input
-                  placeholder="Google-Drive-Link einfügen…"
-                  value={newUrl}
-                  onChange={(e) => setNewUrl(e.target.value)}
-                  style={{ flex: 1 }}
-                />
-                <button onClick={addUrl} style={btnGhost}>+ Hinzufügen</button>
-                <a href="https://drive.google.com/drive/folders/1BoId298-Fp9BYmYHdJF1Z0rG7qBHDfFU" target="_blank" rel="noreferrer">
-                  <button type="button" style={btnGhost}>📁 Beleg-Ordner öffnen</button>
-                </a>
-              </div>
-            </div>
+        <div style={{ background: 'var(--color-surface)', borderRadius: 8, boxShadow: 'var(--shadow)', padding: '10px 14px', marginBottom: 10, fontSize: 12.5 }}>
+          <div style={{ fontWeight: 600, marginBottom: 8 }}>
+            {isNew ? 'Neuer Eintrag' : <>Bearbeite: {formatDatum(draft.datum)} — {draft.beschreibung}</>}
           </div>
-          <div style={{ marginTop: 12 }}>
-            <button onClick={saveEdit} style={btnPrimary}>Speichern</button>{' '}
-            <button onClick={() => { setEditingId(null); setDraft(null); }} style={btnGhost}>Abbrechen</button>
+          <div style={rowStyle}>
+            {isNew
+              ? <Field label="Datum" w={140}><input type="date" min={MIN_NEU_DATUM} value={draft.datum} onChange={(e) => setDraft({ ...draft, datum: e.target.value })} style={inp} /></Field>
+              : <Field label="Datum" w={90}><div style={{ padding: '5px 0' }}>{formatDatum(draft.datum)}</div></Field>}
+            <Field label="Beschreibung" grow><input value={draft.beschreibung || ''} onChange={(e) => setDraft({ ...draft, beschreibung: e.target.value })} style={inp} /></Field>
+            {isNew && <Field label="Lieferant" w={160}><input value={draft.lieferant || ''} onChange={(e) => setDraft({ ...draft, lieferant: e.target.value })} style={inp} /></Field>}
+            <Field label="Konto" w={250}>
+              <select value={draft.konto || ''} onChange={(e) => setDraft({ ...draft, konto: e.target.value })} style={inp}>
+                <option value="???">??? (ungeklärt)</option>
+                {konten.map((k) => <option key={k.code} value={k.code}>{k.code} — {k.name}</option>)}
+              </select>
+            </Field>
+          </div>
+          <div style={rowStyle}>
+            <Field label="Einnahme" w={120}><input type="number" min="0" value={draft.einnahme ?? ''} onChange={(e) => setDraft({ ...draft, einnahme: e.target.value })} style={inp} /></Field>
+            <Field label="Ausgabe" w={120}><input type="number" min="0" value={draft.ausgabe ?? ''} onChange={(e) => setDraft({ ...draft, ausgabe: e.target.value })} style={inp} /></Field>
+            <Field label="Status" w={70}>
+              <select value={draft.status || ''} onChange={(e) => setDraft({ ...draft, status: e.target.value })} style={inp}>
+                {STATUSES.map((st) => <option key={st} value={st}>{st}</option>)}
+              </select>
+            </Field>
+            <Field label="Notiz" grow><input value={draft.notiz || ''} onChange={(e) => setDraft({ ...draft, notiz: e.target.value })} style={inp} /></Field>
+          </div>
+          <div style={{ ...rowStyle, alignItems: 'center' }}>
+            <span style={lbl}>Belege</span>
+            {draft.drive_urls.map((u, i) => (
+              <span key={i} style={{ display: 'inline-flex', gap: 2, alignItems: 'center' }}>
+                <a href={u} target="_blank" rel="noreferrer">#{i + 1}</a>
+                <button onClick={() => removeUrl(i)} style={btnDanger} title="Link entfernen">✕</button>
+              </span>
+            ))}
+            <input placeholder="Google-Drive-Link einfügen…" value={newUrl} onChange={(e) => setNewUrl(e.target.value)} style={{ ...inp, flex: 1, minWidth: 220 }} />
+            <button onClick={addUrl} style={btnGhost}>+ Link</button>
+            <a href="https://drive.google.com/drive/folders/1BoId298-Fp9BYmYHdJF1Z0rG7qBHDfFU" target="_blank" rel="noreferrer">
+              <button type="button" style={btnGhost}>📁 Beleg-Ordner</button>
+            </a>
+            <span style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
+              <button onClick={saveEdit} style={btnPrimary} disabled={saving}>{saving ? 'Speichert…' : (isNew ? 'Anlegen' : 'Speichern')}</button>
+              <button onClick={closeForm} style={btnGhost}>Abbrechen</button>
+            </span>
           </div>
         </div>
       )}
@@ -228,6 +268,19 @@ export default function Kassenbuch() {
     </div>
   );
 }
+
+function Field({ label, w, grow, children }) {
+  return (
+    <label style={{ display: 'flex', flexDirection: 'column', gap: 2, width: grow ? undefined : w, flex: grow ? 1 : undefined, minWidth: grow ? 160 : undefined }}>
+      <span style={lbl}>{label}</span>
+      {children}
+    </label>
+  );
+}
+
+const rowStyle = { display: 'flex', gap: 10, marginBottom: 8, flexWrap: 'wrap', alignItems: 'flex-end' };
+const lbl = { fontSize: 11, color: 'var(--color-muted)' };
+const inp = { padding: '4px 7px', fontSize: 12.5, width: '100%', boxSizing: 'border-box' };
 
 const thStyle = { padding: '5px 8px', textAlign: 'left', borderBottom: '1px solid var(--color-border)' };
 const tdStyle = { padding: '3px 8px' };

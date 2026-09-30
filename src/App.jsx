@@ -17,7 +17,7 @@ import AccountingLog from './pages/AccountingLog';
 const NAV_ITEMS = [
   { to: '/', label: 'Übersicht', end: true },
   { to: '/kassenbuch', label: 'Kassenbuch' },
-  { to: '/petit-cash-adit', label: 'Petit Cash Adit' },
+  { to: '/petit-cash-adit', label: 'Petit Cash Manager' },
   { to: '/bankbuch', label: 'Bankbuch' },
   { to: '/kontenplan', label: 'Kontenplan' },
   { to: '/zahlungsabgleich', label: 'Zahlungsabgleich' },
