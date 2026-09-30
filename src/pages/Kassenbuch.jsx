@@ -7,7 +7,9 @@ const YEAR_OPTIONS = [
   { value: 'alle', label: 'Gesamter Zeitraum (2023–2026)' },
 ];
 const STATUSES = ['⚠️', '✅', '✔️', '📷'];
-const MIN_NEU_DATUM = '2026-05-01'; // Jan–Apr 2026 und früher sind abgeschlossen
+// Januar–April 2026 ist abgeschlossen (Lilo) – dort keine neuen Einträge
+const GESPERRT_VON = '2026-01-01';
+const GESPERRT_BIS = '2026-04-30';
 
 export default function Kassenbuch() {
   const [rows, setRows] = useState([]);
@@ -94,7 +96,7 @@ export default function Kassenbuch() {
     setSaving(true);
     if (isNew) {
       if (!draft.datum || !draft.beschreibung.trim()) { setSaving(false); setError('Datum und Beschreibung sind Pflicht.'); return; }
-      if (draft.datum < MIN_NEU_DATUM) { setSaving(false); setError('Bis 30.04.2026 ist abgeschlossen – bitte ein späteres Datum wählen.'); return; }
+      if (draft.datum >= GESPERRT_VON && draft.datum <= GESPERRT_BIS) { setSaving(false); setError('Januar–April 2026 ist abgeschlossen – dort sind keine neuen Einträge möglich.'); return; }
       if ((einnahme > 0) === (ausgabe > 0)) { setSaving(false); setError('Bitte entweder Einnahme oder Ausgabe eintragen (nicht beides).'); return; }
       const { error } = await supabase.rpc('kassenbuch_neu', {
         p_datum: draft.datum, p_beschreibung: draft.beschreibung.trim(), p_lieferant: draft.lieferant || '',
@@ -190,7 +192,7 @@ export default function Kassenbuch() {
           </div>
           <div style={rowStyle}>
             {isNew
-              ? <Field label="Datum" w={140}><input type="date" min={MIN_NEU_DATUM} value={draft.datum} onChange={(e) => setDraft({ ...draft, datum: e.target.value })} style={inp} /></Field>
+              ? <Field label="Datum" w={140}><input type="date" value={draft.datum} onChange={(e) => setDraft({ ...draft, datum: e.target.value })} style={inp} /></Field>
               : <Field label="Datum" w={90}><div style={{ padding: '5px 0' }}>{formatDatum(draft.datum)}</div></Field>}
             <Field label="Beschreibung" grow><input value={draft.beschreibung || ''} onChange={(e) => setDraft({ ...draft, beschreibung: e.target.value })} style={inp} /></Field>
             {isNew && <Field label="Lieferant" w={160}><input value={draft.lieferant || ''} onChange={(e) => setDraft({ ...draft, lieferant: e.target.value })} style={inp} /></Field>}
