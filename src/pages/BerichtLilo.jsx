@@ -19,7 +19,6 @@ export default function BerichtLilo() {
   const [laedt, setLaedt] = useState(false);
   const [error, setError] = useState('');
   const [msg, setMsg] = useState('');
-  const [auszuege, setAuszuege] = useState([]);
 
   useEffect(() => {
     let aktiv = true;
@@ -31,8 +30,8 @@ export default function BerichtLilo() {
     return () => { aktiv = false; };
   }, [jahr, monat]);
 
-  const text = bericht ? `Laporan bulanan PT Nusantara Indonesia Asri – ${MONATE[monat - 1]} ${jahr}: Payroll, Income Hotel, Income Bar, Rekening Koran.` : '';
-  const alleDateien = bericht ? [...bericht.files, ...auszuege] : [];
+  const text = bericht ? `Laporan bulanan PT Nusantara Indonesia Asri – ${MONATE[monat - 1]} ${jahr}: Pembukuan (Kas, Kas Kecil, Bank), Payroll, Income Hotel, Income Bar.` : '';
+  const alleDateien = bericht ? bericht.files : [];
   const kannTeilen = typeof navigator !== 'undefined' && navigator.canShare && bericht && navigator.canShare({ files: alleDateien });
 
   async function teilen() {
@@ -61,14 +60,17 @@ export default function BerichtLilo() {
   if (i) {
     if (!i.lohn.anzahl) warnungen.push('Für diesen Monat sind keine Löhne erfasst (Seite „Löhne“).');
     if (i.hotel.offen) warnungen.push(`${i.hotel.offen} Zimmerbuchung(en) sind im Zahlungsabgleich noch offen.`);
-    if (!auszuege.length) warnungen.push('Noch keine Kontoauszüge hinzugefügt (Original-PDF aus Kopra für ...666, ...415, ...386, ...783).');
+    const pb = i.pembukuan;
+    if (pb.warnung) warnungen.push(`${pb.warnung} Buchung(en) mit ⚠️ oder ohne Konto.`);
+    if (pb.ohneId.kas + pb.ohneId.bank) warnungen.push(`${pb.ohneId.kas + pb.ohneId.bank} Buchungstexte noch ohne indonesische Übersetzung (erscheinen auf Deutsch).`);
+    pb.bankBis.forEach(([k, bis]) => { if (bis < bericht.bis) warnungen.push(`Bank ...${k}: Buchungen nur bis ${bis.slice(8, 10)}.${bis.slice(5, 7)}. erfasst.`); });
   }
 
   return (
     <div style={{ maxWidth: 760 }}>
       <h2 style={{ color: 'var(--color-primary)' }}>Monatsbericht an Lilo</h2>
       <p style={{ fontSize: 12.5, color: 'var(--color-muted)', marginTop: -6 }}>
-        Fällig am 5. jedes Monats für den Vormonat: Lohntabelle, Income Hotel, Income Bar (werden automatisch erstellt) und die Original-Kontoauszüge.
+        Fällig am 5. jedes Monats für den Vormonat: komplette Buchhaltung (Kasse, Petit Cash Manager, Bank), Lohntabelle, Income Hotel und Income Bar — auf Indonesisch.
       </p>
 
       <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 14 }}>
@@ -89,20 +91,10 @@ export default function BerichtLilo() {
           <div style={card}>
             <table style={{ fontSize: 13 }}>
               <tbody>
-                <tr><td>📄 {bericht.files[0].name}</td><td>{i.lohn.anzahl} Mitarbeiter</td><td style={r}>{fmt(i.lohn.summe)}</td></tr>
-                <tr><td>📄 {bericht.files[1].name}</td><td>{i.hotel.anzahl} Buchungen</td><td style={r}>{fmt(i.hotel.summe)}</td></tr>
-                <tr><td>📄 {bericht.files[2].name}</td><td>{i.bar.anzahl} Rechnungen</td><td style={r}>{fmt(i.bar.summe)}</td></tr>
-                {auszuege.map((f) => (
-                  <tr key={f.name}><td>🏦 {f.name}</td><td>Kontoauszug</td>
-                    <td style={r}><button onClick={() => setAuszuege(auszuege.filter((x) => x !== f))} style={{ border: 'none', background: 'none', color: 'var(--color-danger)' }}>entfernen</button></td></tr>
-                ))}
-                <tr><td colSpan={3}>
-                  <label style={{ ...btn, color: 'var(--color-primary)', background: 'white', display: 'inline-block', cursor: 'pointer' }}>
-                    + Kontoauszüge hinzufügen
-                    <input type="file" multiple accept=".pdf,.xls,.xlsx,.csv,image/*" style={{ display: 'none' }}
-                      onChange={(e) => { setAuszuege([...auszuege, ...Array.from(e.target.files)]); e.target.value = ''; }} />
-                  </label>
-                </td></tr>
+                <tr><td>📄 {bericht.files[0].name}</td><td colSpan={2}>Kasse {i.pembukuan.kas} · Petit Cash {i.pembukuan.pc} · Bank {i.pembukuan.bank} Buchungen</td></tr>
+                <tr><td>📄 {bericht.files[1].name}</td><td>{i.lohn.anzahl} Mitarbeiter</td><td style={r}>{fmt(i.lohn.summe)}</td></tr>
+                <tr><td>📄 {bericht.files[2].name}</td><td>{i.hotel.anzahl} Buchungen</td><td style={r}>{fmt(i.hotel.summe)}</td></tr>
+                <tr><td>📄 {bericht.files[3].name}</td><td>{i.bar.anzahl} Rechnungen</td><td style={r}>{fmt(i.bar.summe)}</td></tr>
               </tbody>
             </table>
           </div>
