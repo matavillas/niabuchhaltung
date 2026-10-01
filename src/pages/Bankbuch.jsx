@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useAnsicht, useScrollMerken } from '../lib/ansicht';
 import { supabase } from '../lib/supabaseClient';
 import { formatDatum } from '../lib/format';
 
@@ -42,18 +43,19 @@ export default function Bankbuch() {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [accountFilter, setAccountFilter] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
-  const [yearFilter, setYearFilter] = useState('2026');
-  const [search, setSearch] = useState('');
-  const [dateFrom, setDateFrom] = useState('');
-  const [dateTo, setDateTo] = useState('');
-  const [amountMin, setAmountMin] = useState('');
-  const [amountMax, setAmountMax] = useState('');
+  const [accountFilter, setAccountFilter] = useAnsicht('bankbuch', 'accountFilter', '');
+  const [statusFilter, setStatusFilter] = useAnsicht('bankbuch', 'statusFilter', '');
+  const [yearFilter, setYearFilter] = useAnsicht('bankbuch', 'yearFilter', '2026');
+  const [search, setSearch] = useAnsicht('bankbuch', 'search', '');
+  const [dateFrom, setDateFrom] = useAnsicht('bankbuch', 'dateFrom', '');
+  const [dateTo, setDateTo] = useAnsicht('bankbuch', 'dateTo', '');
+  const [amountMin, setAmountMin] = useAnsicht('bankbuch', 'amountMin', '');
+  const [amountMax, setAmountMax] = useAnsicht('bankbuch', 'amountMax', '');
   const [konten, setKonten] = useState([]);
   const [editingId, setEditingId] = useState(null);
   const [draft, setDraft] = useState(null);
   const [newUrl, setNewUrl] = useState('');
+  const scrollRef = useScrollMerken('bankbuch', !loading);
 
   async function load(year) {
     setLoading(true);
@@ -262,7 +264,7 @@ export default function Bankbuch() {
         </div>
       )}
 
-      <div style={{ background: 'var(--color-surface)', borderRadius: 8, boxShadow: 'var(--shadow)', overflow: 'auto', maxHeight: '78vh' }}>
+      <div ref={scrollRef} style={{ background: 'var(--color-surface)', borderRadius: 8, boxShadow: 'var(--shadow)', overflow: 'auto', maxHeight: '78vh' }}>
         <table style={{ whiteSpace: 'nowrap', fontSize: 12, borderCollapse: 'collapse' }}>
           <thead>
             <tr style={{ fontSize: 11.5 }}>

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { formatDatum } from '../lib/format';
+import { useAnsicht, useScrollMerken } from '../lib/ansicht';
 
 const YEAR_OPTIONS = [
   { value: '2026', label: '2026' },
@@ -15,19 +16,20 @@ export default function Kassenbuch({ table = 'kassenbuch', title = 'Kassenbuch',
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
-  const [yearFilter, setYearFilter] = useState(defaultYear);
-  const [search, setSearch] = useState('');
-  const [dateFrom, setDateFrom] = useState('');
-  const [dateTo, setDateTo] = useState('');
-  const [amountMin, setAmountMin] = useState('');
-  const [amountMax, setAmountMax] = useState('');
+  const [statusFilter, setStatusFilter] = useAnsicht(table, 'statusFilter', '');
+  const [yearFilter, setYearFilter] = useAnsicht(table, 'yearFilter', defaultYear);
+  const [search, setSearch] = useAnsicht(table, 'search', '');
+  const [dateFrom, setDateFrom] = useAnsicht(table, 'dateFrom', '');
+  const [dateTo, setDateTo] = useAnsicht(table, 'dateTo', '');
+  const [amountMin, setAmountMin] = useAnsicht(table, 'amountMin', '');
+  const [amountMax, setAmountMax] = useAnsicht(table, 'amountMax', '');
   const [konten, setKonten] = useState([]);
   const [editingId, setEditingId] = useState(null);
   const [draft, setDraft] = useState(null);
   const [newUrl, setNewUrl] = useState('');
   const [isNew, setIsNew] = useState(false);
   const [saving, setSaving] = useState(false);
+  const scrollRef = useScrollMerken(table, !loading);
 
   async function load(year) {
     setLoading(true);
@@ -234,7 +236,7 @@ export default function Kassenbuch({ table = 'kassenbuch', title = 'Kassenbuch',
         </div>
       )}
 
-      <div style={{ background: 'var(--color-surface)', borderRadius: 8, boxShadow: 'var(--shadow)', overflow: 'auto', maxHeight: '78vh' }}>
+      <div ref={scrollRef} style={{ background: 'var(--color-surface)', borderRadius: 8, boxShadow: 'var(--shadow)', overflow: 'auto', maxHeight: '78vh' }}>
         <table style={{ whiteSpace: 'nowrap', fontSize: 12, borderCollapse: 'collapse' }}>
           <thead>
             <tr style={{ fontSize: 11.5 }}>
