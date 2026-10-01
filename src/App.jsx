@@ -14,6 +14,8 @@ import KassenbuchSakti from './pages/KassenbuchSakti';
 import TerminalLog from './pages/TerminalLog';
 import RmsTerminals from './pages/RmsTerminals';
 import AccountingLog from './pages/AccountingLog';
+import Lohn from './pages/Lohn';
+import BerichtLilo from './pages/BerichtLilo';
 
 const NAV_ITEMS = [
   { to: '/', label: 'Übersicht', end: true },
@@ -23,6 +25,8 @@ const NAV_ITEMS = [
   { to: '/bankbuch', label: 'Bankbuch' },
   { to: '/kontenplan', label: 'Kontenplan' },
   { to: '/zahlungsabgleich', label: 'Zahlungsabgleich' },
+  { to: '/loehne', label: 'Löhne' },
+  { to: '/bericht-lilo', label: 'Bericht an Lilo' },
   { to: '/rooms', label: 'Zimmer' },
   { to: '/sales', label: 'Umsätze' },
   { to: '/orders', label: 'Bestellungen' },
@@ -72,6 +76,8 @@ function Shell() {
           <Route path="/bankbuch" element={<Bankbuch />} />
           <Route path="/kontenplan" element={<Kontenplan />} />
           <Route path="/zahlungsabgleich" element={<Zahlungsabgleich />} />
+          <Route path="/loehne" element={<Lohn />} />
+          <Route path="/bericht-lilo" element={<BerichtLilo />} />
           <Route path="/rooms" element={<Rooms />} />
           <Route path="/sales" element={<Sales />} />
           <Route path="/orders" element={<Orders />} />
