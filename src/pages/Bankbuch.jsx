@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { formatDatum } from '../lib/format';
 
-const ACCOUNTS = ['666', '415', '386', '783', 'CIMB', '303'];
+const ACCOUNTS = ['666', '415', '386', '783', 'CIMB', '303', 'WISE-RK'];
 const YEAR_OPTIONS = [
   { value: '2026', label: '2026' },
   { value: 'alle', label: 'Gesamter Zeitraum (2023–2026)' },
