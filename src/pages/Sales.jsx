@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { formatDatum } from '../lib/format';
+import UmsatzDiagramme from '../components/UmsatzDiagramme';
 
 const CATEGORIES = ['hotel', 'restaurant', 'minibar'];
 const CATEGORY_LABELS = { hotel: 'Hotel', restaurant: 'Restaurant', minibar: 'Minibar' };
@@ -73,6 +74,7 @@ export default function Sales() {
   return (
     <div>
       <h2 style={{ color: 'var(--color-primary)' }}>Umsätze (Sales)</h2>
+      <UmsatzDiagramme />
       {error && <div style={{ color: 'var(--color-danger)', marginBottom: 10 }}>{error}</div>}
       <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 14 }}>
         <select value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)}>
