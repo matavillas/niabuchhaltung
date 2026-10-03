@@ -23,6 +23,7 @@ export default function Kassenbuch({ table = 'kassenbuch', title = 'Kassenbuch',
   const [dateTo, setDateTo] = useAnsicht(table, 'dateTo', '');
   const [amountMin, setAmountMin] = useAnsicht(table, 'amountMin', '');
   const [amountMax, setAmountMax] = useAnsicht(table, 'amountMax', '');
+  const [bhFilter, setBhFilter] = useAnsicht(table, 'bhFilter', '');
   const [konten, setKonten] = useState([]);
   const [editingId, setEditingId] = useState(null);
   const [draft, setDraft] = useState(null);
@@ -72,7 +73,7 @@ export default function Kassenbuch({ table = 'kassenbuch', title = 'Kassenbuch',
     const heute = new Date().toISOString().slice(0, 10);
     setIsNew(true);
     setEditingId('neu');
-    setDraft({ datum: heute, beschreibung: '', lieferant: '', konto: '???', einnahme: '', ausgabe: '', status: '⚠️', notiz: '', drive_urls: [] });
+    setDraft({ datum: heute, beschreibung: '', lieferant: '', konto: '???', einnahme: '', ausgabe: '', status: '⚠️', notiz: '', drive_urls: [], bh: false });
     setNewUrl('');
   }
 
@@ -100,17 +101,18 @@ export default function Kassenbuch({ table = 'kassenbuch', title = 'Kassenbuch',
       if (!draft.datum || !draft.beschreibung.trim()) { setSaving(false); setError('Datum und Beschreibung sind Pflicht.'); return; }
       if (draft.datum >= GESPERRT_VON && draft.datum <= GESPERRT_BIS) { setSaving(false); setError('Januar–April 2026 ist abgeschlossen – dort sind keine neuen Einträge möglich.'); return; }
       if ((einnahme > 0) === (ausgabe > 0)) { setSaving(false); setError('Bitte entweder Einnahme oder Ausgabe eintragen (nicht beides).'); return; }
-      const { error } = await supabase.rpc('kassenbuch_neu', {
+      const { data: neueId, error } = await supabase.rpc('kassenbuch_neu', {
         p_datum: draft.datum, p_beschreibung: draft.beschreibung.trim(), p_lieferant: draft.lieferant || '',
         p_konto: draft.konto, p_einnahme: einnahme, p_ausgabe: ausgabe, p_status: draft.status,
         p_notiz: draft.notiz || null, p_drive_urls: urls,
       });
+      if (!error && draft.bh && neueId) await supabase.from(table).update({ bh: true }).eq('id', neueId);
       setSaving(false);
       if (error) { setError(error.message); return; }
     } else {
-      const { id, beschreibung, konto, status, notiz, datum, _orig } = draft;
+      const { id, beschreibung, konto, status, notiz, datum, _orig, bh } = draft;
       const { error } = await supabase.from(table).update({
-        beschreibung, konto, einnahme, ausgabe, status, notiz, drive_urls: urls,
+        beschreibung, konto, einnahme, ausgabe, status, notiz, drive_urls: urls, bh: !!bh,
       }).eq('id', id);
       if (error) { setSaving(false); setError(error.message); return; }
       // Betrag geändert -> Saldo ab diesem Datum neu berechnen
@@ -142,9 +144,10 @@ export default function Kassenbuch({ table = 'kassenbuch', title = 'Kassenbuch',
     if (amountMax && betrag > Number(amountMax)) return false;
     return true;
   };
-  const visible = rows.filter((r) => (!statusFilter || r.status === statusFilter) && bySearch(r) && byDate(r) && byAmount(r));
+  const byBh = (r) => (bhFilter === 'bh' ? !!r.bh : bhFilter === 'ohne' ? !r.bh : true);
+  const visible = rows.filter((r) => (!statusFilter || r.status === statusFilter) && bySearch(r) && byDate(r) && byAmount(r) && byBh(r));
   function resetFilters() {
-    setSearch(''); setDateFrom(''); setDateTo(''); setAmountMin(''); setAmountMax(''); setStatusFilter('');
+    setSearch(''); setDateFrom(''); setDateTo(''); setAmountMin(''); setAmountMax(''); setStatusFilter(''); setBhFilter('');
   }
 
   return (
@@ -161,6 +164,11 @@ export default function Kassenbuch({ table = 'kassenbuch', title = 'Kassenbuch',
           <option value="⚠️">⚠️ zu prüfen</option>
           <option value="✔️">✔️ beleglos ok</option>
           <option value="📷">📷 unleserlich</option>
+        </select>
+        <select value={bhFilter} onChange={(e) => setBhFilter(e.target.value)}>
+          <option value="">Mata Villas + Boarding House</option>
+          <option value="bh">nur Boarding House (BH)</option>
+          <option value="ohne">ohne Boarding House</option>
         </select>
         <input
           placeholder="Suche (Beschreibung, Notiz, Konto)…"
@@ -182,7 +190,7 @@ export default function Kassenbuch({ table = 'kassenbuch', title = 'Kassenbuch',
         <input type="number" placeholder="min" value={amountMin} onChange={(e) => setAmountMin(e.target.value)} style={{ padding: '5px 8px', width: 110 }} />
         <label style={{ fontSize: 12, color: 'var(--color-muted)' }}>bis</label>
         <input type="number" placeholder="max" value={amountMax} onChange={(e) => setAmountMax(e.target.value)} style={{ padding: '5px 8px', width: 110 }} />
-        {(dateFrom || dateTo || amountMin || amountMax || search || statusFilter) && (
+        {(dateFrom || dateTo || amountMin || amountMax || search || statusFilter || bhFilter) && (
           <button onClick={resetFilters} style={btnGhost}>Filter zurücksetzen</button>
         )}
       </div>
@@ -212,6 +220,11 @@ export default function Kassenbuch({ table = 'kassenbuch', title = 'Kassenbuch',
               <select value={draft.status || ''} onChange={(e) => setDraft({ ...draft, status: e.target.value })} style={inp}>
                 {STATUSES.map((st) => <option key={st} value={st}>{st}</option>)}
               </select>
+            </Field>
+            <Field label="Boarding House" w={100}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 0' }}>
+                <input type="checkbox" checked={!!draft.bh} onChange={(e) => setDraft({ ...draft, bh: e.target.checked })} /> BH
+              </label>
             </Field>
             <Field label="Notiz" grow><input value={draft.notiz || ''} onChange={(e) => setDraft({ ...draft, notiz: e.target.value })} style={inp} /></Field>
           </div>
@@ -251,7 +264,7 @@ export default function Kassenbuch({ table = 'kassenbuch', title = 'Kassenbuch',
                 <tr key={r.id}>
                   <td style={tdStyle}><button onClick={() => startEdit(r)} style={btnGhost}>Bearb.</button></td>
                   <td style={tdStyle}>{formatDatum(r.datum)}</td>
-                  <td style={{ ...tdStyle, overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 170 }}>{r.beschreibung}</td>
+                  <td style={{ ...tdStyle, overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 170 }}>{r.bh && <span style={bhBadge}>BH</span>}{r.beschreibung}</td>
                   <td style={{ ...tdStyle, overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 60 }}>{r.konto}</td>
                   <td style={tdStyle}>{Number(r.einnahme || 0).toLocaleString('de-DE')}</td>
                   <td style={tdStyle}>{Number(r.ausgabe || 0).toLocaleString('de-DE')}</td>
@@ -291,4 +304,5 @@ const tdStyle = { padding: '3px 8px' };
 
 const btnPrimary = { background: 'var(--color-primary)', color: 'white', border: 'none', borderRadius: 6, padding: '6px 12px', fontSize: 12.5, fontWeight: 600 };
 const btnGhost = { background: 'none', border: '1px solid var(--color-border)', borderRadius: 6, padding: '5px 10px', fontSize: 12 };
+const bhBadge = { background: '#e8f0ff', color: '#2f5fb3', border: '1px solid #b9cdf2', borderRadius: 4, padding: '0 4px', fontSize: 10, fontWeight: 700, marginRight: 5 };
 const btnDanger = { background: 'none', border: 'none', color: 'var(--color-danger)', fontSize: 13 };
