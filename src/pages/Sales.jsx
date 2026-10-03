@@ -57,6 +57,7 @@ export default function Sales() {
   }
 
   async function addSale() {
+    if (!confirm('Neue leere Umsatzbuchung (0 Rp) anlegen?')) return;
     const { error } = await supabase.from('sales').insert({
       revenue_category: 'restaurant',
       total_k: 0,

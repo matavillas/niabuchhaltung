@@ -583,8 +583,8 @@ async function loadBills(){
   }
   try{
     // Alle noch nicht bezahlten Bestellungen: Tische sowie Restaurant/Minibar auf Zimmer (können hier oder beim Check-out bezahlt werden)
-    var d=await sbGet('orders','select=id,table_number,room_id,order_type,total_k,status,kitchen_status,bar_status,created_at,order_items(id,name,quantity,price_k,category,status),rooms(name)&status=in.(new,cooking,making,ready)&order_type=in.(restaurant,minibar)&order=created_at.asc');
-    bills=d.map(function(b){b.room_name=b.rooms?b.rooms.name:null;return b;});
+    var d=await sbGet('orders','select=id,table_number,room_id,order_type,total_k,status,kitchen_status,bar_status,created_at,order_items(id,order_id,name,quantity,price_k,category,status),rooms(name)&status=in.(new,cooking,making,ready)&order_type=in.(restaurant,minibar)&order=created_at.asc');
+    bills=groupRoomOrders(d.map(function(b){b.room_name=b.rooms?b.rooms.name:null;return b;}));
     renderBills();
     if(selBill&&!bills.find(function(b){return b.id===selBill.id;})){
       selBill=null;
@@ -592,6 +592,32 @@ async function loadBills(){
       document.getElementById('paysec').style.display='none';
     }
   }catch(e){notify('⚠ Verbindungsfehler');}
+}
+
+// Mehrere offene Bestellungen desselben Zimmers (gleiche Art) zu einer Rechnung zusammenfassen
+function groupRoomOrders(list){
+  var out=[],groups={};
+  list.forEach(function(o){
+    if(!o.room_id||(o.table_number!==null&&o.table_number!==undefined)){out.push(o);return;}
+    var key='room-'+o.room_id+'-'+o.order_type;
+    var g=groups[key];
+    if(!g){
+      g=groups[key]={id:key,room_id:o.room_id,room_name:o.room_name,order_type:o.order_type,table_number:null,
+        created_at:o.created_at,total_k:0,order_items:[],_orderIds:[],kitchen_status:'served',bar_status:'served'};
+      out.push(g);
+    }
+    g._orderIds.push(o.id);
+    g.total_k+=Number(o.total_k)||0;
+    g.order_items=g.order_items.concat((o.order_items||[]).map(function(i){if(i.order_id==null)i.order_id=o.id;return i;}));
+    if(o.kitchen_status!=='served')g.kitchen_status=o.kitchen_status;
+    if(o.bar_status!=='served')g.bar_status=o.bar_status;
+  });
+  return out;
+}
+function orderIdsOf(b){return b._orderIds?b._orderIds:[b.id];}
+function billDate(b){
+  var d=new Date(b.created_at);
+  return d.toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit'})+' '+d.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
 }
 
 function getPendingWarn(b){
@@ -616,9 +642,10 @@ function renderBills(){
   list.innerHTML=bills.map(function(b){
     var sel=selBill&&selBill.id===b.id;
     var warn=billsMode==='history'?'':getPendingWarn(b);
-    return '<div class="bill-card'+(sel?' sel':'')+'" onclick="selectBill('+b.id+')" title="'+(warn?warn.replace(/"/g,'&quot;'):'')+'">'+
+    return '<div class="bill-card'+(sel?' sel':'')+'" onclick="selectBill(\''+b.id+'\')" title=""'+(warn?warn.replace(/"/g,'&quot;'):'')+'">'+
       '<div class="bill-table">'+(b.order_type==='minibar'?'🏠 ':b.order_type==='hotel'?'🏨 ':(b.order_type==='restaurant'&&b.room_id)?'🏨 ':'')+billLabel(b)+'</div>'+
       '<div class="bill-total">'+formatRp(b.total_k)+'</div>'+
+      '<div class="bill-time">'+billDate(b)+'</div>'+
       (warn?'<div style="width:6px;height:6px;border-radius:50%;background:var(--orange)"></div>':'')+
       '</div>';
   }).join('');
@@ -626,7 +653,7 @@ function renderBills(){
 }
 
 function selectBill(id){
-  selBill=bills.find(function(b){return b.id===id;});
+  selBill=bills.find(function(b){return String(b.id)===String(id);});
   if(!selBill)return;
   window._discountPercent=0;
   window._discountReason=null;
@@ -649,7 +676,7 @@ function renderReceipt(b){
   var rows=items.map(function(i){
     return '<div class="ritem" data-itemid="'+i.id+'"><span class="ritem-name">'+i.quantity+'x '+i.name+'</span>'+
       '<span class="ritem-price">'+formatRp(i.price_k*i.quantity)+'</span>'+
-      (isHist?'':'<button class="ritem-del" onclick="removeBillItem('+b.id+','+i.id+')" title="Entfernen" style="background:none;border:none;color:#e74c3c;cursor:pointer;font-size:14px;margin-left:8px">&#10005;</button>')+'</div>';
+      (isHist?'':'<button class="ritem-del" onclick="removeBillItem('+(i.order_id||b.id)+','+i.id+')" title="Entfernen" style="background:none;border:none;color:#e74c3c;cursor:pointer;font-size:14px;margin-left:8px">&#10005;</button>')+'</div>';
   }).join('');
   var t=new Date(b.created_at).toLocaleString('de-DE',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
   var warn=isHist?'':getPendingWarn(b);
@@ -702,7 +729,7 @@ function renderReceipt(b){
   document.getElementById('receipt').innerHTML=
     '<div class="receipt-head"><div class="receipt-logo">Mata Tapas Bar</div><div class="receipt-sub">Gili Trawangan</div><div class="receipt-sub">+62 853 5381 7651</div></div>'+
     '<table class="drow-table"><tbody>'+
-      '<tr><td>'+(lang==='de'?'Tisch':lang==='en'?'Table':'Meja')+'</td><td>'+billLabel(b)+'</td></tr>'+
+      '<tr><td>'+(b.room_id&&(b.table_number===null||b.table_number===undefined)?(lang==='de'?'Zimmer':lang==='en'?'Room':'Kamar'):(lang==='de'?'Tisch':lang==='en'?'Table':'Meja'))+'</td><td>'+billLabel(b)+'</td></tr>'+
       '<tr><td>'+(lang==='de'?'Datum':lang==='en'?'Date':'Tanggal')+'</td><td>'+t+'</td></tr>'+
     '</tbody></table>'+
     (warn?'<div class="receipt-warn">'+warn+'</div>':'')+
@@ -724,7 +751,7 @@ function renderReceipt(b){
     '</div>'+
     (discount>0?'<div class="rtotal" style="color:#e67e22"><span>Rabatt ('+discount+'%)</span><span>-Rp '+discountAmt+'k</span></div>':'')+
     '<div class="rtotal" style="font-size:18px;font-weight:800;border-top:2px solid #333;padding-top:8px;margin-top:6px"><span>Total</span><span>'+formatRp(finalTotal)+'</span></div>'+
-    '<div style="padding:10px 16px 16px"><button onclick="voidWholeOrder('+b.id+')" style="width:100%;padding:9px;border-radius:8px;border:1.5px solid var(--red-bd);background:var(--red-bg);color:var(--red);font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font)">🗑 '+(lang==='de'?'Ganze Bestellung stornieren':lang==='en'?'Cancel entire order':'Batalkan seluruh pesanan')+'</button></div>';
+    '<div style="padding:10px 16px 16px"><button onclick="voidWholeOrder(\''+b.id+'\')" style="width:100%;padding:9px;border-radius:8px;border:1.5px solid var(--red-bd);background:var(--red-bg);color:var(--red);font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font)">🗑 '+(lang==='de'?'Ganze Bestellung stornieren':lang==='en'?'Cancel entire order':'Batalkan seluruh pesanan')+'</button></div>';
   document.body.className=lang;
 }
 
@@ -740,10 +767,14 @@ async function voidWholeOrder(billId){
   var confirmMsg=lang==='de'?'Diese komplette Bestellung wirklich stornieren? Das kann nicht rückgängig gemacht werden.':lang==='en'?'Really cancel this entire order? This cannot be undone.':'Batalkan seluruh pesanan ini? Tidak bisa dibatalkan.';
   if(!confirm(confirmMsg))return;
   try{
-    await sbPatch('order_items','order_id=eq.'+billId,{status:'cancelled'});
-    await sbPatch('orders','id=eq.'+billId,{status:'cancelled',total_k:0});
-    logAction('Bestellung storniert',billLabel(selBill)+' · #'+billId);
-    bills=bills.filter(function(b){return b.id!==billId;});
+    var vb=bills.find(function(b){return String(b.id)===String(billId);})||selBill;
+    var vids=orderIdsOf(vb);
+    for(var vi=0;vi<vids.length;vi++){
+      await sbPatch('order_items','order_id=eq.'+vids[vi],{status:'cancelled'});
+      await sbPatch('orders','id=eq.'+vids[vi],{status:'cancelled',total_k:0});
+    }
+    logAction('Bestellung storniert',billLabel(vb)+' · #'+vids.join(','));
+    bills=bills.filter(function(b){return String(b.id)!==String(billId);});
     selBill=null;
     renderBills();
     document.getElementById('receipt').innerHTML='<div class="receipt-empty"><span class="l-de">Rechnung wählen</span><span class="l-en">Select a bill</span><span class="l-id">Pilih tagihan</span></div>';
@@ -758,9 +789,9 @@ async function removeBillItem(billId,itemId){
     var item=selBill.order_items.find(function(i){return i.id===itemId;});
     await sbPatch('order_items','id=eq.'+itemId,{status:'cancelled'});
     if(item) item.status='cancelled';
-    var newTotal=selBill.order_items.filter(function(i){return i.status!=='cancelled';}).reduce(function(s,i){return s+(i.price_k*i.quantity);},0);
-    selBill.total_k=newTotal;
+    var newTotal=selBill.order_items.filter(function(i){return i.status!=='cancelled'&&(i.order_id==null||String(i.order_id)===String(billId));}).reduce(function(s,i){return s+(i.price_k*i.quantity);},0);
     await sbPatch('orders','id=eq.'+billId,{total_k:newTotal});
+    selBill.total_k=selBill.order_items.filter(function(i){return i.status!=='cancelled';}).reduce(function(s,i){return s+(i.price_k*i.quantity);},0);
     logAction('Artikel entfernt',billLabel(selBill)+' · '+(item?item.name:'#'+itemId));
     renderReceipt(selBill);
     renderBills();
@@ -802,10 +833,17 @@ async function confirmPay(){
   var isMinibar=selBill.order_type==='minibar';
   var label=billLabel(selBill);
   try{
-    await sbPatch('orders','id=eq.'+bid,{status:'paid',payment_method:payMethod,paid_at:new Date().toISOString(),total_k:total});
+    var pids=orderIdsOf(selBill);
+    var paidAt=new Date().toISOString();
+    var fak=selBill.total_k>0?total/selBill.total_k:1;
+    for(var pi=0;pi<pids.length;pi++){
+      var po=pids.length===1?total:Math.round(selBill.order_items.filter(function(i){return i.status!=='cancelled'&&String(i.order_id)===String(pids[pi]);}).reduce(function(s,i){return s+i.price_k*i.quantity;},0)*fak*100)/100;
+      await sbPatch('orders','id=eq.'+pids[pi],{status:'paid',payment_method:payMethod,paid_at:paidAt,total_k:po});
+    }
+    var saleOrderId=pids.length===1?pids[0]:null;
     var salePayload=isMinibar
-      ?{order_id:bid,room_id:selBill.room_id,total_k:total,payment_method:payMethod,revenue_category:'minibar',discount_percent:discount,discount_reason:discount>0?(window._discountReason||'Rabatt'):null}
-      :{order_id:bid,table_number:selBill.table_number,room_id:selBill.room_id||null,total_k:total,payment_method:payMethod,revenue_category:'restaurant',discount_percent:discount,discount_reason:discount>0?(window._discountReason||'Rabatt'):null};
+      ?{order_id:saleOrderId,room_id:selBill.room_id,total_k:total,payment_method:payMethod,revenue_category:'minibar',discount_percent:discount,discount_reason:discount>0?(window._discountReason||'Rabatt'):null}
+      :{order_id:saleOrderId,table_number:selBill.table_number,room_id:selBill.room_id||null,total_k:total,payment_method:payMethod,revenue_category:'restaurant',discount_percent:discount,discount_reason:discount>0?(window._discountReason||'Rabatt'):null};
     var saleId=null;
     try{var saleRes=await sbPost('sales',salePayload);saleId=saleRes[0].id;}catch(e){}
     logAction('Zahlung bestätigt',label+' · '+payMethod+' · Rp '+total+'k'+(discount>0?' · Rabatt '+discount+'%':''));
