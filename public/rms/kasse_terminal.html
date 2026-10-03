@@ -53,7 +53,7 @@ body.de .l-de,body.en .l-en,body.id .l-id{display:inline}
 .notif{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1a202c;color:#fff;border-radius:8px;padding:10px 20px;font-size:13px;z-index:200;opacity:0;pointer-events:none;transition:opacity .25s;white-space:nowrap}
 .notif.show{opacity:1}
 .layout{flex:1;display:flex;overflow:hidden;min-height:0}
-.bills-side{width:112px;flex-shrink:0;background:#fff;border-right:1.5px solid var(--border);display:flex;flex-direction:column}
+.bills-side{width:160px;flex-shrink:0;background:#fff;border-right:1.5px solid var(--border);display:flex;flex-direction:column}
 .bills-head{padding:8px 6px;font-size:10px;font-weight:700;border-bottom:1px solid var(--border);background:var(--bg);text-align:center;line-height:1.2}
 .bills-list{flex:1;overflow-y:auto}
 .bill-card{padding:10px 6px;border-bottom:1px solid var(--border);cursor:pointer;display:flex;flex-direction:column;align-items:center;text-align:center;gap:3px}
@@ -66,7 +66,7 @@ body.de .l-de,body.en .l-en,body.id .l-id{display:inline}
 .bmode-btn{display:flex!important;flex-direction:column;align-items:center;gap:1px;padding:7px 2px!important;font-size:9px!important}
 .bmode-btn .bm-ic{font-size:14px}
 @media (max-width:480px){
-  .bills-side{width:96px}
+  .bills-side{width:124px}
   .bill-table{font-size:14px}
   .bill-total{font-size:11px}
   .topbar-title{display:none}
@@ -508,6 +508,7 @@ document.addEventListener('click',function(e){
 });
 function billLabel(b){
   if(b.order_type==='minibar'||b.order_type==='hotel')return b.room_name||'Zimmer';
+  if(b.room_id&&(b.table_number===null||b.table_number===undefined))return b.room_name||'Zimmer';
   return tw()+b.table_number;
 }
 function formatRp(k){var full=Math.round((k||0)*1000);return 'Rp '+full.toLocaleString('id-ID');}
@@ -581,8 +582,8 @@ async function loadBills(){
     return;
   }
   try{
-    // Zeige alle noch nicht bezahlten RESTAURANT-Bestellungen — Minibar läuft separat über "Abreise"
-    var d=await sbGet('orders','select=id,table_number,room_id,order_type,total_k,status,kitchen_status,bar_status,created_at,order_items(id,name,quantity,price_k,category,status),rooms(name)&status=in.(new,cooking,making,ready)&order_type=eq.restaurant&room_id=is.null&order=created_at.asc');
+    // Alle noch nicht bezahlten Bestellungen: Tische sowie Restaurant/Minibar auf Zimmer (können hier oder beim Check-out bezahlt werden)
+    var d=await sbGet('orders','select=id,table_number,room_id,order_type,total_k,status,kitchen_status,bar_status,created_at,order_items(id,name,quantity,price_k,category,status),rooms(name)&status=in.(new,cooking,making,ready)&order_type=in.(restaurant,minibar)&order=created_at.asc');
     bills=d.map(function(b){b.room_name=b.rooms?b.rooms.name:null;return b;});
     renderBills();
     if(selBill&&!bills.find(function(b){return b.id===selBill.id;})){
@@ -804,7 +805,7 @@ async function confirmPay(){
     await sbPatch('orders','id=eq.'+bid,{status:'paid',payment_method:payMethod,paid_at:new Date().toISOString(),total_k:total});
     var salePayload=isMinibar
       ?{order_id:bid,room_id:selBill.room_id,total_k:total,payment_method:payMethod,revenue_category:'minibar',discount_percent:discount,discount_reason:discount>0?(window._discountReason||'Rabatt'):null}
-      :{order_id:bid,table_number:selBill.table_number,total_k:total,payment_method:payMethod,revenue_category:'restaurant',discount_percent:discount,discount_reason:discount>0?(window._discountReason||'Rabatt'):null};
+      :{order_id:bid,table_number:selBill.table_number,room_id:selBill.room_id||null,total_k:total,payment_method:payMethod,revenue_category:'restaurant',discount_percent:discount,discount_reason:discount>0?(window._discountReason||'Rabatt'):null};
     var saleId=null;
     try{var saleRes=await sbPost('sales',salePayload);saleId=saleRes[0].id;}catch(e){}
     logAction('Zahlung bestätigt',label+' · '+payMethod+' · Rp '+total+'k'+(discount>0?' · Rabatt '+discount+'%':''));
