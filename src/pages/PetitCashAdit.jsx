@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { formatDatum } from '../lib/format';
+import { nachSaldoKette } from '../lib/saldoKette';
 
 const STATUSES = ['⚠️', '✅', '✔️', '📷'];
 
@@ -20,7 +21,7 @@ export default function PetitCashAdit() {
     setError('');
     const { data, error } = await supabase.from('petit_cash_adit').select('*').order('datum', { ascending: true });
     if (error) setError(error.message);
-    else setRows(data);
+    else setRows(nachSaldoKette(data || []).reverse()); // neueste zuerst, wie in den anderen Kassenbüchern
     setLoading(false);
   }
 
@@ -29,7 +30,7 @@ export default function PetitCashAdit() {
     supabase.from('kontenplan').select('*').order('code').then(({ data }) => setKonten(data || []));
   }, []);
 
-  const currentSaldo = rows.length ? Number(rows[rows.length - 1].saldo) : 0;
+  const currentSaldo = rows.reduce((s, r) => s + Number(r.einnahme || 0) - Number(r.ausgabe || 0), 0);
 
   function startEdit(row) {
     setEditingId(row.id);
