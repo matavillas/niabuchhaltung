@@ -150,7 +150,8 @@ tr:last-child td{border-bottom:none}
     <div class="nav-item" onclick="showPanel('tischplan',this)">🗺️ <span class="l-de">Tischplan</span><span class="l-en">Floor Plan</span><span class="l-id">Denah</span></div>
     <div class="nav-item" onclick="showPanel('bestellungen',this)">📋 <span class="l-de">Rechnungen</span><span class="l-en">Invoices</span><span class="l-id">Faktur</span></div>
     <div class="nav-item" onclick="showPanel('rezepte',this)">📖 <span class="l-de">Rezepte Küche</span><span class="l-en">Kitchen Recipes</span><span class="l-id">Resep Dapur</span></div>
-    <div class="nav-item" onclick="showPanel('barrezepte',this)">🍹 <span class="l-de">Rezepte Bar</span><span class="l-en">Bar Recipes</span><span class="l-id">Resep Bar</span></div> <span class="l-de">Rezepte</span><span class="l-en">Recipes</span><span class="l-id">Resep</span></div>
+    <div class="nav-item" onclick="showPanel('barrezepte',this)">🍹 <span class="l-de">Rezepte Bar</span><span class="l-en">Bar Recipes</span><span class="l-id">Resep Bar</span></div>
+    <div class="nav-item" onclick="showPanel('pettycash',this)">💵 Petit Cash</div>
   </div>
   <!-- Panel wrap -->
   <div class="panel-wrap">
@@ -374,6 +375,31 @@ tr:last-child td{border-bottom:none}
         <tbody id="hotel-inv-tbody"></tbody></table>
       </div>
     </div>
+    <!-- PETIT CASH -->
+    <div class="panel" id="panel-pettycash">
+      <div class="cards">
+        <div class="card"><div class="card-label"><span class="l-de">Aktueller Bestand</span><span class="l-en">Current balance</span><span class="l-id">Saldo saat ini</span></div><div class="card-value" id="pc-saldo">—</div></div>
+        <div class="card"><div class="card-label"><span class="l-de">Einnahmen im Monat</span><span class="l-en">In this month</span><span class="l-id">Masuk bulan ini</span></div><div class="card-value" id="pc-ein">—</div></div>
+        <div class="card"><div class="card-label"><span class="l-de">Ausgaben im Monat</span><span class="l-en">Out this month</span><span class="l-id">Keluar bulan ini</span></div><div class="card-value" id="pc-aus">—</div></div>
+      </div>
+      <div class="date-row">
+        <input type="month" id="pc-month" onchange="loadPettyCash()">
+        <button class="ghost" onclick="pcMonthNow()"><span class="l-de">Aktueller Monat</span><span class="l-en">This month</span><span class="l-id">Bulan ini</span></button>
+      </div>
+      <div class="table-wrap">
+        <div class="table-head" id="pc-label">—</div>
+        <table><thead><tr>
+          <th><span class="l-de">Datum</span><span class="l-en">Date</span><span class="l-id">Tanggal</span></th>
+          <th><span class="l-de">Beschreibung</span><span class="l-en">Description</span><span class="l-id">Keterangan</span></th>
+          <th style="text-align:right"><span class="l-de">Einnahme</span><span class="l-en">In</span><span class="l-id">Masuk</span></th>
+          <th style="text-align:right"><span class="l-de">Ausgabe</span><span class="l-en">Out</span><span class="l-id">Keluar</span></th>
+          <th style="text-align:right">Saldo</th>
+          <th>Status</th>
+          <th><span class="l-de">Beleg</span><span class="l-en">Receipt</span><span class="l-id">Nota</span></th>
+        </tr></thead>
+        <tbody id="pc-tbody"></tbody></table>
+      </div>
+    </div>
     <!-- BAR REZEPTE -->
     <div class="panel" id="panel-barrezepte">
       <div style="border-radius:12px;overflow:hidden;border:1px solid var(--border)">
@@ -502,6 +528,7 @@ function showPanel(id,el){
   else if(id==='tischplan'){}
   else if(id==='barrezepte'){}
   else if(id==='speisekarte') loadMenuAdmin();
+  else if(id==='pettycash'){ if(!document.getElementById('pc-month').value) pcMonthNow(); else loadPettyCash(); }
 }
 
 // DASHBOARD
@@ -881,6 +908,49 @@ window.addEventListener('DOMContentLoaded',function(){
   for(var _i=0;_i<8;_i++){history.pushState(null,'',location.href);}
   window.addEventListener('popstate',function(){history.pushState(null,'',location.href);});
 });
+
+// PETIT CASH (nur Anzeige, Daten aus petit_cash_adit)
+function pcRp(n){return Number(n||0).toLocaleString('de-DE');}
+function pcEsc(t){return String(t==null?'':t).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+function pcMonthNow(){var d=new Date();document.getElementById('pc-month').value=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');loadPettyCash();}
+async function loadPettyCash(){
+  var m=document.getElementById('pc-month').value;if(!m)return;
+  var y=+m.slice(0,4),mo=+m.slice(5,7);
+  var von=m+'-01',bis=(mo===12?(y+1)+'-01':y+'-'+String(mo+1).padStart(2,'0'))+'-01';
+  var tb=document.getElementById('pc-tbody');
+  tb.innerHTML='<tr><td colspan="7" style="color:var(--text3)">…</td></tr>';
+  try{
+    // alle Zeilen laden (kleine Tabelle); Reihenfolge innerhalb eines Tages über die Saldo-Kette bestimmen
+    var all=await sbGet('petit_cash_adit','select=id,datum,beschreibung,einnahme,ausgabe,saldo,status,drive_urls,created_at&order=datum.asc,created_at.asc');
+    all.sort(function(x,y){return x.datum<y.datum?-1:x.datum>y.datum?1:(x.created_at||'')<(y.created_at||'')?-1:(x.created_at||'')>(y.created_at||'')?1:0;});
+    var ordered=[],prev=0,i=0;
+    while(i<all.length){
+      var day=[];var d0=all[i].datum;while(i<all.length&&all[i].datum===d0){day.push(all[i]);i++;}
+      while(day.length){
+        var k=day.findIndex(function(r){return Math.abs(prev+Number(r.einnahme||0)-Number(r.ausgabe||0)-Number(r.saldo||0))<1;});
+        if(k<0)k=0;
+        var r=day.splice(k,1)[0];ordered.push(r);prev=Number(r.saldo||0);
+      }
+    }
+    var bestand=0;all.forEach(function(r){bestand+=Number(r.einnahme||0)-Number(r.ausgabe||0);});
+    document.getElementById('pc-saldo').textContent='Rp '+pcRp(bestand);
+    var rows=ordered.filter(function(r){return r.datum>=von&&r.datum<bis;}).reverse(),ein=0,aus=0;
+    rows.forEach(function(r){ein+=Number(r.einnahme||0);aus+=Number(r.ausgabe||0);});
+    document.getElementById('pc-ein').textContent='Rp '+pcRp(ein);
+    document.getElementById('pc-aus').textContent='Rp '+pcRp(aus);
+    document.getElementById('pc-label').textContent=rows.length+' '+(lang==='de'?'Einträge':lang==='en'?'entries':'entri');
+    if(!rows.length){tb.innerHTML='<tr><td colspan="7" style="color:var(--text3)">—</td></tr>';return;}
+    tb.innerHTML=rows.map(function(r){
+      var d=r.datum?r.datum.slice(8,10)+'.'+r.datum.slice(5,7)+'.'+r.datum.slice(0,4):'';
+      var urls=Array.isArray(r.drive_urls)?r.drive_urls:[];
+      var beleg=urls.length?urls.map(function(u,i){return '<a href="'+pcEsc(u)+'" target="_blank" rel="noopener">#'+(i+1)+'</a>';}).join(' '):'—';
+      return '<tr><td style="white-space:nowrap">'+d+'</td><td>'+pcEsc(r.beschreibung)+'</td>'+
+        '<td style="text-align:right">'+(Number(r.einnahme)?pcRp(r.einnahme):'')+'</td>'+
+        '<td style="text-align:right">'+(Number(r.ausgabe)?pcRp(r.ausgabe):'')+'</td>'+
+        '<td style="text-align:right">'+pcRp(r.saldo)+'</td><td>'+pcEsc(r.status)+'</td><td>'+beleg+'</td></tr>';
+    }).join('');
+  }catch(e){tb.innerHTML='<tr><td colspan="7" style="color:var(--red)">'+(lang==='de'?'Fehler beim Laden: ':'Error: ')+pcEsc(e.message)+'</td></tr>';}
+}
 </script>
 </body>
 </html>
