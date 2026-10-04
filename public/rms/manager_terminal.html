@@ -926,11 +926,14 @@ async function loadPettyCash(){
     var ordered=[],prev=0,i=0;
     while(i<all.length){
       var day=[];var d0=all[i].datum;while(i<all.length&&all[i].datum===d0){day.push(all[i]);i++;}
-      while(day.length){
-        var k=day.findIndex(function(r){return Math.abs(prev+Number(r.einnahme||0)-Number(r.ausgabe||0)-Number(r.saldo||0))<1;});
-        if(k<0)k=0;
-        var r=day.splice(k,1)[0];ordered.push(r);prev=Number(r.saldo||0);
-      }
+      // Einnahmen vor Ausgaben, innerhalb der Gruppe nach Saldo-Kette
+      [day.filter(function(r){return Number(r.einnahme||0)>0;}),day.filter(function(r){return !(Number(r.einnahme||0)>0);})].forEach(function(g){
+        while(g.length){
+          var k=g.findIndex(function(r){return Math.abs(prev+Number(r.einnahme||0)-Number(r.ausgabe||0)-Number(r.saldo||0))<1;});
+          if(k<0)k=0;
+          var r=g.splice(k,1)[0];ordered.push(r);prev=Number(r.saldo||0);
+        }
+      });
     }
     var bestand=0;all.forEach(function(r){bestand+=Number(r.einnahme||0)-Number(r.ausgabe||0);});
     document.getElementById('pc-saldo').textContent='Rp '+pcRp(bestand);

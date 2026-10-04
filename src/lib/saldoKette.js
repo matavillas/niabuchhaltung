@@ -1,5 +1,5 @@
 // Bringt Kassenzeilen in die Buchungsreihenfolge (älteste zuerst).
-// Innerhalb eines Tages entscheidet die Saldo-Kette: Saldo vorher + Einnahme − Ausgabe = Saldo der Zeile.
+// Innerhalb eines Tages kommen Einnahmen vor Ausgaben; innerhalb dieser Gruppen entscheidet die Saldo-Kette: Saldo vorher + Einnahme − Ausgabe = Saldo der Zeile.
 // Passt keine Zeile in die Kette, bleibt die Reihenfolge nach created_at.
 export function nachSaldoKette(rows) {
   const all = [...rows].sort((a, b) =>
@@ -12,13 +12,16 @@ export function nachSaldoKette(rows) {
     const day = [];
     const d0 = all[i].datum;
     while (i < all.length && all[i].datum === d0) day.push(all[i++]);
-    while (day.length) {
-      let k = day.findIndex((r) =>
-        Math.abs(prev + Number(r.einnahme || 0) - Number(r.ausgabe || 0) - Number(r.saldo || 0)) < 1);
-      if (k < 0) k = 0;
-      const r = day.splice(k, 1)[0];
-      out.push(r);
-      prev = Number(r.saldo || 0);
+    const gruppen = [day.filter((r) => Number(r.einnahme || 0) > 0), day.filter((r) => !(Number(r.einnahme || 0) > 0))];
+    for (const g of gruppen) {
+      while (g.length) {
+        let k = g.findIndex((r) =>
+          Math.abs(prev + Number(r.einnahme || 0) - Number(r.ausgabe || 0) - Number(r.saldo || 0)) < 1);
+        if (k < 0) k = 0;
+        const r = g.splice(k, 1)[0];
+        out.push(r);
+        prev = Number(r.saldo || 0);
+      }
     }
   }
   return out;
