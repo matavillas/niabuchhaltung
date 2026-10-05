@@ -126,6 +126,24 @@ export default function Kassenbuch({ table = 'kassenbuch', title = 'Kassenbuch',
     load(yearFilter);
   }
 
+  async function deleteEntry() {
+    const { id, datum, beschreibung, einnahme, ausgabe, locked } = draft;
+    if (datum >= GESPERRT_VON && datum <= GESPERRT_BIS) { setError('Januar–April 2026 ist abgeschlossen – dort kann nichts gelöscht werden (nur Umbuchung).'); return; }
+    if (locked) { setError('Dieser Eintrag ist gesperrt und kann nicht gelöscht werden.'); return; }
+    const betrag = Number(ausgabe || 0) || Number(einnahme || 0);
+    if (!confirm(`Eintrag wirklich löschen?\n\n${formatDatum(datum)} — ${beschreibung}\n${betrag.toLocaleString('de-DE')} Rp`)) return;
+    setError('');
+    setSaving(true);
+    const { data, error } = await supabase.from(table).delete().eq('id', id).select('id');
+    if (error) { setSaving(false); setError(error.message); return; }
+    if (!data || data.length === 0) { setSaving(false); setError('Nicht gelöscht – keine Berechtigung (Löschen ist nur für den General Manager erlaubt).'); return; }
+    const { error: e2 } = await supabase.rpc('kassenbuch_saldo_neu', { p_from: datum });
+    setSaving(false);
+    if (e2) setError('Gelöscht, aber Saldo-Neuberechnung fehlgeschlagen: ' + e2.message);
+    closeForm();
+    load(yearFilter);
+  }
+
   const bySearch = (r) => {
     if (!search.trim()) return true;
     const q = search.trim().toLowerCase();
@@ -244,6 +262,9 @@ export default function Kassenbuch({ table = 'kassenbuch', title = 'Kassenbuch',
             <span style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
               <button onClick={saveEdit} style={btnPrimary} disabled={saving}>{saving ? 'Speichert…' : (isNew ? 'Anlegen' : 'Speichern')}</button>
               <button onClick={closeForm} style={btnGhost}>Abbrechen</button>
+              {!isNew && table === 'kassenbuch' && (
+                <button onClick={deleteEntry} style={{ ...btnGhost, color: 'var(--color-danger)', borderColor: 'var(--color-danger)' }} disabled={saving}>Löschen</button>
+              )}
             </span>
           </div>
         </div>
