@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useAnsicht, useScrollMerken } from '../lib/ansicht';
+import Summenfeld from '../components/Summenfeld';
 import { supabase } from '../lib/supabaseClient';
 import { formatDatum } from '../lib/format';
 
@@ -200,6 +201,13 @@ export default function Bankbuch() {
           <button onClick={resetFilters} style={btnGhost}>Filter zurücksetzen</button>
         )}
       </div>
+      {!loading && (dateFrom || dateTo || amountMin || amountMax || search || accountFilter || statusFilter) && (
+        <Summenfeld
+          anzahl={visible.length}
+          einLabel="Eingänge (Kredit)" ein={visible.reduce((s, r) => s + Number(r.credit || 0), 0)}
+          ausLabel="Ausgänge (Debit)" aus={visible.reduce((s, r) => s + Number(r.debit || 0), 0)}
+        />
+      )}
 
       {editingId && draft && (
         <div style={{ background: 'var(--color-surface)', borderRadius: 8, boxShadow: 'var(--shadow)', padding: 14, marginBottom: 14 }}>

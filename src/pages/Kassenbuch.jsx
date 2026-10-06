@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { formatDatum } from '../lib/format';
 import { useAnsicht, useScrollMerken } from '../lib/ansicht';
+import Summenfeld from '../components/Summenfeld';
 
 const YEAR_OPTIONS = [
   { value: '2026', label: '2026' },
@@ -212,6 +213,13 @@ export default function Kassenbuch({ table = 'kassenbuch', title = 'Kassenbuch',
           <button onClick={resetFilters} style={btnGhost}>Filter zurücksetzen</button>
         )}
       </div>
+      {!loading && (dateFrom || dateTo || amountMin || amountMax || search || statusFilter || bhFilter) && (
+        <Summenfeld
+          anzahl={visible.length}
+          einLabel="Einnahmen" ein={visible.reduce((s, r) => s + Number(r.einnahme || 0), 0)}
+          ausLabel="Ausgaben" aus={visible.reduce((s, r) => s + Number(r.ausgabe || 0), 0)}
+        />
+      )}
 
       {editingId && draft && (
         <div style={{ background: 'var(--color-surface)', borderRadius: 8, boxShadow: 'var(--shadow)', padding: '10px 14px', marginBottom: 10, fontSize: 12.5 }}>
