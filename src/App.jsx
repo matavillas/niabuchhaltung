@@ -7,7 +7,6 @@ import Bankbuch from './pages/Bankbuch';
 import Rooms from './pages/Rooms';
 import Sales from './pages/Sales';
 import Orders from './pages/Orders';
-import Zahlungsabgleich from './pages/Zahlungsabgleich';
 import Kontenplan from './pages/Kontenplan';
 import PetitCashAdit from './pages/PetitCashAdit';
 import KassenbuchSakti from './pages/KassenbuchSakti';
@@ -24,11 +23,10 @@ const NAV_ITEMS = [
   { to: '/kassenbuch-sakti', label: 'Kassenbuch Sakti' },
   { to: '/bankbuch', label: 'Bankbuch' },
   { to: '/kontenplan', label: 'Kontenplan' },
-  { to: '/zahlungsabgleich', label: 'Zahlungsabgleich' },
   { to: '/loehne', label: 'Löhne' },
   { to: '/bericht-lilo', label: 'Bericht an Lilo' },
   { to: '/rooms', label: 'Zimmer' },
-  { to: '/sales', label: 'Umsätze' },
+  { to: '/sales', label: 'Umsätze & Zahlungsabgleich' },
   { to: '/orders', label: 'Bestellungen' },
 ];
 const GENERALMANAGER_ONLY_NAV = [
@@ -75,7 +73,7 @@ function Shell() {
           <Route path="/kassenbuch-sakti" element={<KassenbuchSakti />} />
           <Route path="/bankbuch" element={<Bankbuch />} />
           <Route path="/kontenplan" element={<Kontenplan />} />
-          <Route path="/zahlungsabgleich" element={<Zahlungsabgleich />} />
+          <Route path="/zahlungsabgleich" element={<Sales />} />
           <Route path="/loehne" element={<Lohn />} />
           <Route path="/bericht-lilo" element={<BerichtLilo />} />
           <Route path="/rooms" element={<Rooms />} />

@@ -11,6 +11,10 @@ export default function Sales() {
   const [sales, setSales] = useState([]);
   const [rooms, setRooms] = useState([]);
   const [historie, setHistorie] = useState([]);
+  const [hotelCharges, setHotelCharges] = useState([]);
+  const [rohdatenOffen, setRohdatenOffen] = useState(false);
+  const [abgleichFilter, setAbgleichFilter] = useState('all');
+  const [kanalFilter, setKanalFilter] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [filterCategory, setFilterCategory] = useState('');
@@ -19,15 +23,17 @@ export default function Sales() {
 
   async function load() {
     setLoading(true);
-    const [salesRes, roomsRes, histRes] = await Promise.all([
+    const [salesRes, roomsRes, histRes, hcRes] = await Promise.all([
       supabase.from('sales').select('*').order('created_at', { ascending: false }),
       supabase.from('rooms').select('id,name'),
       supabase.from('kartenumsaetze').select('*').order('datum', { ascending: false }),
+      supabase.from('hotel_charges').select('id,amount_k'),
     ]);
     if (salesRes.error) setError(salesRes.error.message);
     else setSales(salesRes.data);
     if (roomsRes.data) setRooms(roomsRes.data);
     if (histRes.data) setHistorie(histRes.data);
+    if (hcRes.data) setHotelCharges(hcRes.data);
     setLoading(false);
   }
 
@@ -70,6 +76,15 @@ export default function Sales() {
   const visible = filterCategory ? sales.filter((s) => s.revenue_category === filterCategory) : sales;
   const total = visible.reduce((sum, s) => sum + Number(s.total_k || 0), 0);
 
+  const alle = baueGesamtliste(historie, sales, hotelCharges);
+  const counts = alle.reduce((acc, g) => { acc[g.status || 'ohne'] = (acc[g.status || 'ohne'] || 0) + 1; return acc; }, {});
+  const gesamt = alle.filter((g) =>
+    (abgleichFilter === 'all' || g.status === abgleichFilter) &&
+    (!kanalFilter || g.kanal === kanalFilter)
+  );
+  const sumPreis = gesamt.reduce((a, g) => a + g.preis, 0);
+  const sumBank = gesamt.reduce((a, g) => a + g.bank, 0);
+
   if (loading) return <div>Lade Umsätze…</div>;
 
   return (
@@ -77,6 +92,10 @@ export default function Sales() {
       <h2 style={{ color: 'var(--color-primary)' }}>Umsätze (Sales)</h2>
       <UmsatzDiagramme />
       {error && <div style={{ color: 'var(--color-danger)', marginBottom: 10 }}>{error}</div>}
+      <button onClick={() => setRohdatenOffen(!rohdatenOffen)} style={{ ...btnGhost, marginBottom: 10 }}>
+        {rohdatenOffen ? '▾' : '▸'} Kassenterminal-Rohdaten bearbeiten
+      </button>
+      {rohdatenOffen && (<>
       <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 14 }}>
         <select value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)}>
           <option value="">Alle Kategorien</option>
@@ -143,35 +162,125 @@ export default function Sales() {
           </tbody>
         </table>
       </div>
+      </>)}
 
-      <h3 style={{ color: 'var(--color-primary)', fontSize: 15 }}>Bisherige Umsätze — Hotel &amp; Restaurant (kartenumsaetze)</h3>
+      <h3 style={{ color: 'var(--color-primary)', fontSize: 15 }}>Alle Umsätze &amp; Zahlungsabgleich — Hotel &amp; Restaurant</h3>
+      <div style={{ display: 'flex', gap: 8, marginBottom: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+        {[
+          { key: 'open', label: `⏳ Offen — noch abzugleichen (${counts.open || 0})` },
+          { key: 'matched', label: `✅ Abgeglichen (${counts.matched || 0})` },
+          { key: 'all', label: `Alle (${alle.length})` },
+        ].map((f) => (
+          <button key={f.key} onClick={() => setAbgleichFilter(f.key)} style={{
+            padding: '5px 10px', borderRadius: 6, fontSize: 12, border: '1px solid var(--color-border)',
+            background: abgleichFilter === f.key ? 'var(--color-primary)' : 'white',
+            color: abgleichFilter === f.key ? 'white' : 'var(--color-text)',
+          }}>{f.label}</button>
+        ))}
+        <select value={kanalFilter} onChange={(e) => setKanalFilter(e.target.value)} style={{ marginLeft: 'auto' }}>
+          <option value="">Alle Kanäle</option>
+          {['Booking.com', 'Agoda', 'Karte', 'Bar', 'Direkt', 'Sonstige'].map((k) => <option key={k} value={k}>{k}</option>)}
+        </select>
+      </div>
+      <div style={{ fontSize: 12, color: 'var(--color-muted)', marginBottom: 6 }}>
+        Preis = Betrag laut Kassenterminal bzw. Buchung. Bankbetrag = was auf der Bank ankommt: Kartenzahlung minus 1,8 % Kartengebühr, sonst gleich dem Preis.
+        {' '}{gesamt.length} Einträge · Preis {sumPreis.toLocaleString('de-DE')} · Bank {sumBank.toLocaleString('de-DE')}
+      </div>
       <div style={{ background: 'var(--color-surface)', borderRadius: 8, boxShadow: 'var(--shadow)', overflow: 'auto', maxHeight: '60vh' }}>
         <table style={{ fontSize: 12, whiteSpace: 'nowrap' }}>
           <thead>
             <tr>
-              <th>Datum</th><th>Quelle</th><th>Detail</th><th>Betrag</th><th>Netto</th><th>Zahlungsart</th><th>Status</th>
+              <th>Datum</th><th>Bereich</th><th>Gast / Detail</th><th>Zahlungsart</th>
+              <th style={{ textAlign: 'right' }}>Preis</th><th style={{ textAlign: 'right' }}>Bankbetrag</th>
+              <th>Datenquelle</th><th>Abgleich</th><th>Info</th>
             </tr>
           </thead>
           <tbody>
-            {historie.map((h) => (
-              <tr key={h.id}>
-                <td>{formatDatum(h.datum)}</td>
-                <td>{h.quelle}</td>
-                <td style={{ overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 320 }}>{h.detail}</td>
-                <td>{Number(h.betrag || 0).toLocaleString('de-DE')}</td>
-                <td>{Number(h.netto || 0).toLocaleString('de-DE')}</td>
-                <td>{h.zahlungsart || '—'}</td>
-                <td>{h.match_status}</td>
+            {gesamt.map((g) => (
+              <tr key={g.key}>
+                <td>{formatDatum(g.datum)}</td>
+                <td>{g.bereich}</td>
+                <td style={{ overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 320 }}>{g.detail}</td>
+                <td>{g.kanal}</td>
+                <td style={{ textAlign: 'right' }}>{g.preis.toLocaleString('de-DE')}</td>
+                <td style={{ textAlign: 'right' }}>{g.bank.toLocaleString('de-DE')}</td>
+                <td style={{ color: 'var(--color-muted)' }}>{g.datenquelle}</td>
+                <td style={{ color: STATUS_COLOR[g.status], fontWeight: 600 }}>{STATUS_LABEL[g.status] || g.status || '—'}</td>
+                <td style={{ fontSize: 11, color: 'var(--color-muted)', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 260 }} title={g.info || ''}>{g.info || '—'}</td>
               </tr>
             ))}
-            {historie.length === 0 && (
-              <tr><td colSpan={7} style={{ textAlign: 'center', color: 'var(--color-muted)' }}>Keine historischen Umsätze gefunden.</td></tr>
+            {gesamt.length === 0 && (
+              <tr><td colSpan={9} style={{ textAlign: 'center', color: 'var(--color-muted)' }}>Keine Umsätze in dieser Ansicht.</td></tr>
             )}
           </tbody>
         </table>
       </div>
     </div>
   );
+}
+
+const KARTE = ['card', 'non tunai', 'karte', 'kartenzahlung', 'qris'];
+function istKarte(z) { return KARTE.includes(String(z || '').trim().toLowerCase()); }
+
+const STATUS_LABEL = { open: '⏳ Offen', matched: '✅ Abgeglichen' };
+const STATUS_COLOR = { open: 'var(--color-warning)', matched: 'var(--color-success)' };
+
+// Zahlungskanal aus Zahlungsart (und für Altdaten ohne klare Zahlungsart aus dem Detailtext)
+function kanalVon(zahlungsart, detail) {
+  const z = String(zahlungsart || '').trim().toLowerCase();
+  if (z === 'booking' || z === 'booking.com') return 'Booking.com';
+  if (z === 'agoda') return 'Agoda';
+  if (istKarte(z)) return 'Karte';
+  if (z === 'cash') return 'Bar';
+  if (z === 'bank_transfer') return 'Direkt';
+  const d = String(detail || '');
+  if (d.includes('(Agoda')) return 'Agoda';
+  if (d.includes('(Booking.com')) return 'Booking.com';
+  if (d.toLowerCase().includes('direktbuchung')) return 'Direkt';
+  return 'Sonstige';
+}
+
+// Eine Liste aus Zahlungsabgleich (kartenumsaetze, enthält auch die Zimmer aus dem Kassenterminal)
+// plus den Restaurant-/Minibar-Umsätzen aus dem Kassenterminal (sales), die dort nicht enthalten sind.
+function baueGesamtliste(historie, sales, hotelCharges) {
+  const hcById = new Map(hotelCharges.map((h) => [h.id, h]));
+  const rows = historie.map((h) => {
+    const hc = h.hotel_charge_id ? hcById.get(h.hotel_charge_id) : null;
+    const preis = Math.round(Number(h.jumlah_pembayaran || (hc ? Number(hc.amount_k) * 1000 : 0) || h.betrag || 0));
+    const karte = istKarte(h.zahlungsart);
+    return {
+      key: `k-${h.id}`,
+      datum: h.datum,
+      bereich: h.quelle,
+      detail: h.detail,
+      zahlungsart: h.zahlungsart,
+      preis,
+      bank: karte ? Math.round(preis * 0.982) : preis,
+      datenquelle: h.hotel_charge_id ? `Kassenterminal #${h.hotel_charge_id}` : 'Import Altdaten',
+      status: h.match_status,
+      kanal: kanalVon(h.zahlungsart, h.detail),
+      info: h.match_info,
+    };
+  });
+  for (const s of sales) {
+    if (s.revenue_category === 'hotel') continue; // Zimmer stehen schon über hotel_charges in der Liste
+    const preis = Math.round(Number(s.total_k || 0) * 1000);
+    const karte = istKarte(s.payment_method);
+    rows.push({
+      key: `s-${s.id}`,
+      datum: (s.created_at || '').slice(0, 10),
+      bereich: s.revenue_category === 'minibar' ? 'Minibar' : 'Restaurant/Bar',
+      detail: s.guest_name || '—',
+      zahlungsart: s.payment_method,
+      preis,
+      bank: karte ? Math.round(preis * 0.982) : preis,
+      datenquelle: 'Kassenterminal (Umsatz)',
+      status: '',
+      kanal: kanalVon(s.payment_method, ''),
+      info: '',
+    });
+  }
+  return rows.sort((a, b) => (a.datum < b.datum ? 1 : a.datum > b.datum ? -1 : 0));
 }
 
 const btnPrimary = { background: 'var(--color-primary)', color: 'white', border: 'none', borderRadius: 6, padding: '6px 12px', fontSize: 12.5, fontWeight: 600 };
