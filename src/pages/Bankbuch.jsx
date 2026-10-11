@@ -78,6 +78,35 @@ export default function Bankbuch() {
       if (data.length < PAGE_SIZE) break;
       from += PAGE_SIZE;
     }
+    // Reihenfolge wie im Kassenbuch: neueste Tage oben, je Tag und Bankkonto
+    // chronologisch "Eingang vor Ausgang" gebucht und absteigend angezeigt
+    // (Eingänge stehen damit unten im Tag, der Saldo liest sich von unten nach oben).
+    // Aufgeteilte Bankbewegungen (gleicher groupKey) bleiben als Block zusammen.
+    const grpInfo = new Map();
+    for (const r of all) {
+      const k = groupKey(r);
+      const g = grpInfo.get(k) || { first: r.created_at, credit: false };
+      if (r.created_at < g.first) g.first = r.created_at;
+      if (Number(r.credit) > 0) g.credit = true;
+      grpInfo.set(k, g);
+    }
+    const chrono = (a, b) => {
+      const ka = groupKey(a), kb = groupKey(b);
+      const ga = grpInfo.get(ka), gb = grpInfo.get(kb);
+      if (ka !== kb) {
+        if (ga.credit !== gb.credit) return ga.credit ? -1 : 1;
+        if (ga.first !== gb.first) return ga.first < gb.first ? -1 : 1;
+        return ka < kb ? -1 : 1;
+      }
+      if (a.created_at !== b.created_at) return a.created_at < b.created_at ? -1 : 1;
+      return String(a.id) < String(b.id) ? -1 : 1;
+    };
+    all.sort((a, b) => {
+      if (a.datum !== b.datum) return a.datum < b.datum ? 1 : -1;
+      if (a.konto_nr !== b.konto_nr) return String(a.konto_nr) < String(b.konto_nr) ? -1 : 1;
+      // Tagesblöcke absteigend (neueste oben), innerhalb einer Aufteilung Teil 1/n zuerst
+      return groupKey(a) === groupKey(b) ? chrono(a, b) : -chrono(a, b);
+    });
     setRows(all);
     setLoading(false);
   }
