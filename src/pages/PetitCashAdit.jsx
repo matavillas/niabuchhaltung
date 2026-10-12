@@ -49,13 +49,35 @@ export default function PetitCashAdit() {
     setDraft({ ...draft, drive_urls: draft.drive_urls.filter((_, i) => i !== idx) });
   }
 
+  // Laufenden Saldo aller Zeilen neu berechnen (Datum, je Tag Einnahmen vor Ausgaben, dann Erfassungszeit)
+  // und nur geänderte Zeilen zurückschreiben. Nötig nach jeder Änderung von Betrag oder Datum.
+  async function saldenNeuBerechnen() {
+    const { data, error } = await supabase.from('petit_cash_adit').select('id,datum,einnahme,ausgabe,saldo,created_at');
+    if (error) { setError(error.message); return; }
+    const sorted = [...(data || [])].sort((a, b) => {
+      if (a.datum !== b.datum) return a.datum < b.datum ? -1 : 1;
+      const ea = Number(a.einnahme || 0) > 0 ? 0 : 1, eb = Number(b.einnahme || 0) > 0 ? 0 : 1;
+      if (ea !== eb) return ea - eb;
+      if ((a.created_at || '') !== (b.created_at || '')) return (a.created_at || '') < (b.created_at || '') ? -1 : 1;
+      return String(a.id) < String(b.id) ? -1 : 1;
+    });
+    let lauf = 0;
+    for (const r of sorted) {
+      lauf += Number(r.einnahme || 0) - Number(r.ausgabe || 0);
+      if (Math.abs(Number(r.saldo || 0) - lauf) >= 0.5) {
+        const { error: e } = await supabase.from('petit_cash_adit').update({ saldo: lauf }).eq('id', r.id);
+        if (e) { setError(e.message); return; }
+      }
+    }
+  }
+
   async function saveEdit() {
     const { id, beschreibung, konto, einnahme, ausgabe, status, notiz, drive_urls } = draft;
     const { error } = await supabase.from('petit_cash_adit').update({
       beschreibung, konto, einnahme: Number(einnahme) || 0, ausgabe: Number(ausgabe) || 0, status, notiz, drive_urls,
     }).eq('id', id);
     if (error) setError(error.message);
-    else { setEditingId(null); setDraft(null); load(); }
+    else { await saldenNeuBerechnen(); setEditingId(null); setDraft(null); load(); }
   }
 
   async function addEntry() {
@@ -68,7 +90,7 @@ export default function PetitCashAdit() {
       einnahme, ausgabe, saldo, status: '⚠️',
     });
     if (error) setError(error.message);
-    else { setNeu({ datum: '', beschreibung: '', konto: '', einnahme: 0, ausgabe: 0 }); setAdding(false); load(); }
+    else { await saldenNeuBerechnen(); setNeu({ datum: '', beschreibung: '', konto: '', einnahme: 0, ausgabe: 0 }); setAdding(false); load(); }
   }
 
   if (loading) return <div>Lade Petit Cash Manager…</div>;
