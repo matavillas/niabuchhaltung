@@ -15,6 +15,7 @@ import RmsTerminals from './pages/RmsTerminals';
 import AccountingLog from './pages/AccountingLog';
 import Lohn from './pages/Lohn';
 import BerichtLilo from './pages/BerichtLilo';
+import OffeneZahlungen from './pages/OffeneZahlungen';
 
 const NAV_ITEMS = [
   { to: '/', label: 'Übersicht', end: true },
@@ -22,6 +23,7 @@ const NAV_ITEMS = [
   { to: '/petit-cash-adit', label: 'Petit Cash Manager' },
   { to: '/kassenbuch-sakti', label: 'Kassenbuch Sakti' },
   { to: '/bankbuch', label: 'Bankbuch' },
+  { to: '/offene-zahlungen', label: 'Offene Zahlungen' },
   { to: '/kontenplan', label: 'Kontenplan' },
   { to: '/loehne', label: 'Löhne' },
   { to: '/bericht-lilo', label: 'Bericht an Lilo' },
@@ -72,6 +74,7 @@ function Shell() {
           <Route path="/petit-cash-adit" element={<PetitCashAdit />} />
           <Route path="/kassenbuch-sakti" element={<KassenbuchSakti />} />
           <Route path="/bankbuch" element={<Bankbuch />} />
+          <Route path="/offene-zahlungen" element={<OffeneZahlungen />} />
           <Route path="/kontenplan" element={<Kontenplan />} />
           <Route path="/zahlungsabgleich" element={<Sales />} />
           <Route path="/loehne" element={<Lohn />} />
