@@ -10,6 +10,7 @@ const STATUS = {
   offen: { label: '⏳ Offen', color: 'var(--color-warning)' },
   bestaetigt: { label: '✔ Bezahlt bestätigt — wartet auf Kontoauszug', color: 'var(--color-primary)' },
   erledigt: { label: '✅ Erledigt', color: 'var(--color-success)' },
+  abgebrochen: { label: '✖ Abgebrochen (Datei aus Payment entfernt)', color: 'var(--color-muted)' },
 };
 
 const fmt = (n) => Number(n || 0).toLocaleString('de-DE');
@@ -84,6 +85,7 @@ export default function OffeneZahlungen() {
           { key: 'offen', label: `⏳ Offen (${counts.offen || 0})` },
           { key: 'bestaetigt', label: `✔ Bezahlt bestätigt (${counts.bestaetigt || 0})` },
           { key: 'erledigt', label: `✅ Erledigt (${counts.erledigt || 0})` },
+          { key: 'abgebrochen', label: `✖ Abgebrochen (${counts.abgebrochen || 0})` },
           { key: 'all', label: `Alle (${rows.length})` },
         ].map((f) => (
           <button
@@ -148,6 +150,7 @@ export default function OffeneZahlungen() {
       <p style={{ fontSize: 11.5, color: 'var(--color-muted)', marginTop: 10 }}>
         Quelle: Drive-Ordner „Bills 2026 / Payment“. Nach „✔ Bezahlt“ wird der Beleg in den Ordner „Bank“ verschoben;
         sobald die Überweisung im Kontoauszug steht, wird das Überweisungsdatum eingetragen und die Zeile auf „Erledigt“ gesetzt.
+        Wird eine offene Datei aus „Payment“ herausgenommen, gilt der Vorgang als abgebrochen.
       </p>
     </div>
   );
